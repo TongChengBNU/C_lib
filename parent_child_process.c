@@ -13,7 +13,7 @@ int main()
 		fprintf(stderr, "Fork Failed");
 		return 1;
 	}
-	else if (pid=0){
+	else if (pid==0){
 		/* child process */
 		execlp("/bin/ls", "ls", NULL);
 	}
