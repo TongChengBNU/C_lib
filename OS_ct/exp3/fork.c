@@ -1,13 +1,11 @@
 #include <unistd.h>
 #include <stdio.h>
 #include <sys/types.h>
+#include <sys/file.h>  /* contain function: int lockf(int fd, int cmd, off_t len) */
 #include <wait.h>
-
 
 #define TRUE 1
 #define FALSE 0
-
-
 
 int main()
 {
