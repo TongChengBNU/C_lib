@@ -52,24 +52,34 @@ int main()
         }
         else if (fpid_p2 > 0)
         {
-            lockf(1, 1, 0);
             /* In parent process */
             printf("Parent Process: a;\nPID: %d\nPPID: %d\n\n", getpid(), getppid() );
-            /* lockf(1, 0, 0);*/
         }
         else
         {
             lockf(1, 1, 0);
-            /* In child 2 process */
-            printf("Child 2 Process: c;\nPID: %d\nPPID: %d\n\n", getpid(), getppid() );
+            for (int i=0; i<5; i++)
+            {
+                /* lockf(1, 1, 0); */
+                /* In child 2 process */
+                printf("Child 2 Process: c;\nPID: %d\nPPID: %d\n\n", getpid(), getppid() );
+                /* lockf(1, 0, 0); */
+                sleep(3);
+            }
             lockf(1, 0, 0);
         }
     }
     else
     {
         lockf(1, 1, 0);
-        /* In child 1 process */
-        printf("Child 1 Process: b;\nPID: %d\nPPID: %d\n\n", getpid(), getppid() );
+        for (int i=0; i<3; i++)
+        {
+            /* lockf(1, 1, 0); */
+            /* In child 1 process */
+            printf("Child 1 Process: b;\nPID: %d\nPPID: %d\n\n", getpid(), getppid() );
+            /* lockf(1, 0, 0); */
+            sleep(3);
+        }
         lockf(1, 0, 0);
 
     }
