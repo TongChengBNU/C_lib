@@ -46,7 +46,6 @@ int main(int argc,char **argv)
 	if( (port=atoi(argv[2])) < 0 ) 
 	{
 		fprintf(stderr,"Usage:%s server_ip server_port\n",argv[0]);
-		/*客户端运行方式，需要服务器的ip和服务器的端口*/
         /* server_ip server_port */
 		exit(1); 
 	} 
@@ -60,8 +59,8 @@ int main(int argc,char **argv)
 
     /* Complete server address structure. */
 	bzero(&addr,sizeof(struct sockaddr_in)); 
-	addr.sin_family=AF_INET;
-	addr.sin_port=htons(port); 
+	addr.sin_family = AF_INET;
+	addr.sin_port = htons(port); 
 	if(inet_aton(argv[1],&addr.sin_addr)<0) 
 	{ 
 		fprintf(stderr,"ip error:%s\n",strerror(errno)); 
