@@ -1,3 +1,4 @@
+/* msg_test.c */
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/msg.h>
@@ -7,11 +8,11 @@ struct msgbuf
 	int mtype;
 	char mtext[1];
 };
- 
+
 int main()
 {
 	int msqid;
-	struct msqid_ds info;
+	struct msqid_ds info;  /* message queue state */
 	struct msgbuf buf;
 	msqid=msgget(IPC_PRIVATE,0777|IPC_CREAT);
 	printf("0777|IPC_CREAT:%o\n",0777|IPC_CREAT);
