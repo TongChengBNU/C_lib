@@ -91,8 +91,10 @@ void Client()
 
 
         /* send and wait for response */
+        /* return 0 if sent success */
         msgsnd(msg_queue_id, &msg[i-1], MSGLENGTH, 0);
         printf("(Client)sent;\n");
+        /* return size_t count if receiving success */
         msgrcv(msg_queue_id, &msg_rcv, MSGLENGTH, RESPONSE_TYPE, 0);
         printf("(Client)received;\n");
 
@@ -119,7 +121,7 @@ void Server()
         return;
     }
 
-    
+    /*    
     for (int i=10;i>0;i--)
     {
         msgrcv(msg_queue_id, &msg_rcv, MSGLENGTH, i, 0); 
@@ -132,18 +134,13 @@ void Server()
         printf("(Server)sent;\n");
         printf("message type:%ld \n", msg_response.msg_type);
     }
-    
+    */ 
 
-    /*
+    
     while (1)
     {
-        for (int i=10; i>0; i--)
-        {
-            count = msgrcv(msg_queue_id, &msg_rcv, MSGLENGTH, i, 0); 
-            if (count == MSGLENGTH)
-                break;
-        }
-        printf("(Server)received;\n");
+        count = msgrcv(msg_queue_id, &msg_rcv, MSGLENGTH, -10, 0); 
+        printf("(Server)received: %ld bytes;\n", count);
         printf("message type:%ld \n", msg_rcv.msg_type);
         printf("%s \n", msg_rcv.msg_content);
 
@@ -154,7 +151,7 @@ void Server()
             break;
         
     }
-    */
+    
 
     /* remove message queue */
     msgctl(msg_queue_id, IPC_RMID, 0);
