@@ -1,4 +1,4 @@
-/*******·(tcpserver.c) ************/
+/*******(tcpserver.c) ************/
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
