@@ -21,13 +21,10 @@ const char START_CMD[] = "START";
 const char GET_CURRENT_TIME_CMD[] = "GET CURRENT TIME";
 
 
-// Output user prompt; 
-void UserPrompt();
 
 
 int main(int argc, char* argv[])
 {
-    unsigned short ServerUDPPort;
 
     // socket file descriptor; 
     int server_TCPSock_fd, server_UDPSock_fd;
@@ -37,11 +34,8 @@ int main(int argc, char* argv[])
     struct sockaddr_in Server_TCP_addr, Server_UDP_addr;
     struct sockaddr_in Client_TCP_addr, Client_UDP_addr;
 
-
-    char UserChoice;
-    char portnum[5];
-    unsigned long BytesReceived, BytesSent;
-    int RetValue;
+    int UDP_port = UDP_PORT_NUMBER;
+    char buffer[1024];
 
 
     // Step 1: check argv[]
@@ -49,7 +43,6 @@ int main(int argc, char* argv[])
     {
         fprintf(stderr, "Wrong format;\nCorrect usage: ./%s <TCP Server Port>\n ", argv[0]);
         exit(1);
-        return ERROR;
     }
 
 
@@ -59,7 +52,6 @@ int main(int argc, char* argv[])
     {
         fprintf(stderr, "Wrong format;\nCorrect usage: ./%s <TCP Server Port>\n ", argv[0]);
         exit(1);
-        return ERROR;
     }
 
 
@@ -68,13 +60,11 @@ int main(int argc, char* argv[])
     {
         fprintf(stderr, "Server TCP socket file descriptor error;\n"); 
         exit(1);
-        return ERROR;
     }
     if ( (Server_UDPSock_fd = socket(AF_INET, SOCK_DGRAM, 0)) == -1 )
     {
         fprintf(stderr, "Server UDP socket file descriptor error;\n"); 
         exit(1);
-        return ERROR;
     }
 
 
@@ -85,7 +75,7 @@ int main(int argc, char* argv[])
     Server_TCP_addr.sin_addr.s_addr = htonl(INADDR_ANY); 
 
     /* Step 5: binding */
-    if ( bind(Server_TCPSock_fd, (struct sockaddr *)(&Server_TCP_addr), sizeof(struct sockaddr_in)) == -1 )
+    if ( bind(Server_TCPSock_fd, (struct sockaddr *)(&Server_TCP_addr), sizeof(struct sockaddr)) == -1 )
     {
         fprintf(stderr, "TCP Bind error;\n ");
         exit(1);
@@ -100,15 +90,34 @@ int main(int argc, char* argv[])
         exit(1);
     }
 
+    /* Step 7: TCP accept */
+    char cmd[] = " START";
     while(1)
     {
-        if( (Client_TCPSock_fd = accept(Server_TCPSock_fd, (struct sockaddr *)(&Client_TCP_addr), sizeof(struct sockaddr_in))) == -1)
+        if( (Client_TCPSock_fd = accept(Server_TCPSock_fd, (struct sockaddr *)(&Client_TCP_addr), sizeof(struct sockaddr))) == -1)
         {
-            fprintf(stderr, "TCP listen error:\s\n\a ", strerror(errno));
+            fprintf(stderr, "TCP accept error:\s\n\a ", strerror(errno));
             exit(1);
         }
         fprintf(stdout, "Get connection from %s.\n", inet_ntoa(Client_TCP_addr.sin_addr));
         fflush(stdout);
+
+        /* Send UDP_port */
+        sprintf(buffer, "%d", UDP_port);
+        if ( write(Client_TCPSock_fd, buffer, sizeof(buffer)) == -1 )
+        {
+            fprintf(stderr, "Write error;\n ");
+            exit(1);
+        }
+        /* Send start cmd */
+        strcpy(buffer, cmd);
+        if ( write(Client_TCPSock_fd, buffer, sizeof(buffer)) == -1 )
+        {
+            fprintf(stderr, "Write error;\n ");
+            exit(1);
+        }
+
+
 
 
     }
