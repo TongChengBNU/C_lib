@@ -8,6 +8,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <pthread.h>
+#include <time.h>
 
 // why 65535 ? 
 #define MAX_BUF_SIZE 65535
@@ -21,20 +23,26 @@ const char START_CMD[] = "START";
 const char GET_CURRENT_TIME_CMD[] = "GET CURRENT TIME";
 
 
+void *listening_thread(void *arg);
+void *UDP_service_thread(void *arg);
+void *TCP_service_thread(void *arg);
+
+
+// socket file descriptor; 
+int Server_TCPSock_fd, Server_UDPSock_fd;
+int Client_TCPSock_fd, Client_UDPSock_fd;
+
+// 3 struct address 
+struct sockaddr_in Server_TCP_addr, Server_UDP_addr;
+struct sockaddr_in Client_TCP_addr, Client_UDP_addr;
+
+int Server_UDP_port = UDP_PORT_NUMBER;
 
 
 int main(int argc, char* argv[])
 {
 
-    // socket file descriptor; 
-    int server_TCPSock_fd, server_UDPSock_fd;
-    int client_TCPSock_fd, client_UDPSock_fd;
 
-    // 3 struct address 
-    struct sockaddr_in Server_TCP_addr, Server_UDP_addr;
-    struct sockaddr_in Client_TCP_addr, Client_UDP_addr;
-
-    int UDP_port = UDP_PORT_NUMBER;
     char buffer[1024];
 
 
@@ -74,15 +82,45 @@ int main(int argc, char* argv[])
     Server_TCP_addr.sin_port = htons(Server_TCP_Port);
     Server_TCP_addr.sin_addr.s_addr = htonl(INADDR_ANY); 
 
-    /* Step 5: binding */
+    bzero(&Server_UDP_addr, sizeof(struct sockaddr_in));
+    Server_UDP_addr.sin_family = AF_INET;
+    Server_UDP_addr.sin_port = htons(Server_UDP_port);
+    Server_UDP_addr.sin_addr.s_addr = htonl(INADDR_ANY); 
+
+
+    /* Step 5: TCP, UDP binding */
     if ( bind(Server_TCPSock_fd, (struct sockaddr *)(&Server_TCP_addr), sizeof(struct sockaddr)) == -1 )
     {
         fprintf(stderr, "TCP Bind error;\n ");
         exit(1);
-        return ERROR;
     }
 
-    /* Step 6: listening */
+    if ( bind(Server_UDPSock_fd, (struct sockaddr *)(&Server_UDP_addr), sizeof(struct sockaddr)) == -1 )
+    {
+        fprintf(stderr, "UDP Bind error;\n ");
+        exit(1);
+    }
+
+
+
+    /* Step 6: create a TCP listening thread */
+    pthread_t listening_thread_id;
+    if ( pthread_create(&listening_thread_id, NULL, listening_thread, NULL) != 0)
+    {
+        fprintf(stderr, "Listening thread creation failed;\n");
+        exit(1);
+    }
+
+
+
+    return 0;
+}
+
+
+
+void *listening_thread(void *arg)
+{
+
     int backlog_num = 5;
     if ( listen(Server_TCPSock_fd, backlog_num) == -1)
     {
@@ -90,8 +128,11 @@ int main(int argc, char* argv[])
         exit(1);
     }
 
-    /* Step 7: TCP accept */
+    // only one service thread is allowed.
+    pthread_t TCP_service_thread_id;
     char cmd[] = " START";
+
+    // accept and create TCP service thread for every loop
     while(1)
     {
         if( (Client_TCPSock_fd = accept(Server_TCPSock_fd, (struct sockaddr *)(&Client_TCP_addr), sizeof(struct sockaddr))) == -1)
@@ -102,27 +143,91 @@ int main(int argc, char* argv[])
         fprintf(stdout, "Get connection from %s.\n", inet_ntoa(Client_TCP_addr.sin_addr));
         fflush(stdout);
 
-        /* Send UDP_port */
-        sprintf(buffer, "%d", UDP_port);
-        if ( write(Client_TCPSock_fd, buffer, sizeof(buffer)) == -1 )
+
+        if ( pthread_create(&TCP_service_thread_id, NULL, TCP_service_thread, NULL) != 0)
         {
-            fprintf(stderr, "Write error;\n ");
+            fprintf(stderr, "TCP service thread creation failed with IP: %s;\n", inet_ntoa(Client_TCP_addr.sin_addr));
             exit(1);
         }
-        /* Send start cmd */
-        strcpy(buffer, cmd);
-        if ( write(Client_TCPSock_fd, buffer, sizeof(buffer)) == -1 )
-        {
-            fprintf(stderr, "Write error;\n ");
-            exit(1);
-        }
-
-
-
-
     }
-    return 0;
+
+    // no out entry
+    // to be continued ...
 }
 
 
+void *TCP_service_thread(void *arg)
+{
+    // to be continued ...
+    //
+    int recv_count;
+    char cmd[] = "START";
+    char option_1[] = "GET CUR TIME";
+    char buffer[1024];
 
+
+    /* Send UDP_port */
+    sprintf(buffer, "%d", Server_UDP_port);
+    if ( write(Client_TCPSock_fd, buffer, sizeof(buffer)) == -1 )
+    {
+        fprintf(stderr, "Write error;\n ");
+        exit(1);
+    }
+    /* Send start cmd */
+    strcpy(buffer, cmd);
+    if ( write(Client_TCPSock_fd, buffer, sizeof(buffer)) == -1 )
+    {
+        fprintf(stderr, "Write error;\n ");
+        exit(1);
+    }
+
+    time_t now;
+    while (1)
+    {
+        if ( (recv_count = read(Client_TCPSock_fd, buffer, sizeof(buffer))) == -1 )
+        {
+            fprintf(stderr, "Read Client Error;\n"); 
+            exit(1);
+        }
+        buffer[recv_count] = "\0";
+        if ( strcmp(option_1, buffer) == 0)
+        {
+            // sent local system time
+            now = time(NULL);
+            sprintf(buffer, "%s", ctime(&now));
+            if ( write(Client_TCPSock_fd, buffer, sizeof(buffer)) == -1 )
+            {
+                fprintf(stderr, "Write current time error;\n ");
+                exit(1);
+            }
+
+        }
+
+        
+    }
+
+    // no out entry
+    // to be continued ...
+}
+
+
+void *UDP_service_thread(void *arg)
+{
+    // to be continued ...
+	struct sockaddr_in addr; 
+	int addrlen, recv_count; 
+	char buffer[1024]; 
+	while(1) 
+	{  
+        /* read data from internet; */
+        socklen_t len_addr = sizeof(struct sockaddr);
+		recv_count = recvfrom(Server_UDPSock_fd, buffer, 1024, 0, (struct sockaddr*)&addr, &len_addr);
+		buffer[recv_count] = "\0";
+
+        /* send info received back to client; */
+		sendto(Server_UDPSock_fd, buffer, recv_count, 0, (struct sockaddr*)&addr, sizeof(struct sockaddr)); 
+	} 
+
+    // no out entry
+    // to be continued ...
+}

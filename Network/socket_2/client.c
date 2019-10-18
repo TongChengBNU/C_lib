@@ -17,27 +17,28 @@ void Option_3();
 
 int Server_TCP_fd;
 int TCPSock_fd, UDPSock_fd;
-int TCP_Server_Port;
+int Server_TCP_Port, Server_UDP_port;
 
-char buffer[1024];
+struct sockaddr_in Server_TCP_addr, Server_UDP_addr; 
+
 
 int main(int argc, char* argv[])
 {
     int recv_count;
-    int UDP_port;
     char cmd[50];
+    char buffer[1024];
 
     if (argc != 3)
     {
         fprintf(stderr, "Wrong format!\nCorrect Usage: <TCP Server IP> <TCP Server Port>\n");
         exit(1);
     }
-    if ( inet_atoi(argv[1], &TCP_Server_addr.sin_addr) == 0 )
+    if ( inet_aton(argv[1], &Server_TCP_addr.sin_addr) == 0 )
     {
         fprintf(stderr, "TCP Server IP Error;\n");
         exit(1);
     }
-    if ( (TCP_Server_Port = atoi(argv[2])) < 0 )
+    if ( (Server_TCP_Port = atoi(argv[2])) < 0 )
     {
         fprintf(stderr, "TCP Server Port Error;\n");
         exit(1);
@@ -57,10 +58,10 @@ int main(int argc, char* argv[])
     }
 
     /* complete struct of TCP_Server_addr */
-    TCP_Server_addr.sin_family = AF_INET; 
-    TCP_Server_addr.sin_port = htons(TCP_Server_Port);
+    Server_TCP_addr.sin_family = AF_INET; 
+    Server_TCP_addr.sin_port = htons(Server_TCP_Port);
     
-    if ( connect(TCPSock_fd, (struct sockaddr *)(&TCP_Server_addr), sizeof(struct sockaddr)) == -1 )
+    if ( connect(TCPSock_fd, (struct sockaddr *)(&Server_TCP_addr), sizeof(struct sockaddr)) == -1 )
     {
         fprintf(stderr, "Connect to TCP Server Error;\n"); 
         exit(1);
@@ -72,23 +73,21 @@ int main(int argc, char* argv[])
         fprintf(stderr, "Read TCP Server Error;\n"); 
         exit(1);
     }
-    UDP_port = atoi(buffer);
+    buffer[recv_count] = "\0";
+    Server_UDP_port = atoi(buffer);
 
     if ( (recv_count = read(TCPSock_fd, buffer, sizeof(buffer))) == -1 )
     {
         fprintf(stderr, "Read TCP Server Error;\n"); 
         exit(1);
     }
+    buffer[recv_count] = "\0";
     strcpy(cmd, buffer);
 
 
-    char cmd_start[] = "START":
+    char cmd_start[] = "START";
     if ( strcmp(cmd, cmd_start) == 0)
         UserPrompt();
-
-
-
-
 
     return 0;
 
@@ -106,11 +105,11 @@ void UserPrompt()
         fprintf(stdout, "2. Echo Mode(UDP)\n");
         fprintf(stdout, "3. Exit the program\n");
         fprintf(stdout, "Please select an option [1/2/3]:\n");
-        scanf("%d", &option):
+        scanf("%d", &option);
         while ( option < 1 || option > 3)
         {
             fprintf(stderr, "Input error;\n");
-            scanf("%d", &option):
+            scanf("%d", &option);
         }
 
         switch(option)
@@ -133,23 +132,71 @@ void UserPrompt()
 void Option_1()
 {
     char cmd_option_1[] = "GET CUR TIME";
+    int recv_count;
+    char buffer[1024];
+    
     strcpy(buffer, cmd_option_1);
     if ( write(TCPSock_fd, buffer, sizeof(buffer)) == -1)
     {
         fprintf(stderr, "Write error;\n ");
         exit(1);
     }
-
+    
+    if ( (recv_count = read(TCPSock_fd, buffer, sizeof(buffer))) == -1 )
+    {
+        fprintf(stderr, "Read TCP Server Error;\n"); 
+        exit(1);
+    }
+    buffer[recv_count] = "\0";
+    fprintf(stderr, "Current time from server: %s;\n", buffer);
+    
+    return NULL;
 }
 
 
 
 void Option_2()
+{
+	char buffer[1024]; 
+	int recv_count; 
+    char cache[1024];
 
+    //fgets(buffer, 1024, stdin);
+	
+    /* Loop begin */
+	while(1) 
+	{  
+		/* input data and send it to udp server */ 
+        fprintf(stderr, "Please input message to be sent to Server:\n");
+
+		fgets(buffer, 1024, stdin); 
+        strcpy(cache, buffer);
+        
+		sendto(UDPSock_fd, buffer, strlen(buffer), 0, (struct sockaddr*)(&Server_UDP_addr), sizeof(struct sockaddr));
+		bzero(buffer, 1024); 
+
+		/* receive data from udp server */
+		recv_count = recvfrom(UDPSock_fd, buffer, 1024, 0, (struct sockaddr*)(&Server_UDP_addr), sizeof(struct sockaddr)); 
+		buffer[recv_count] = "\0"; 
+
+        // validation
+        if ( strcmp(buffer, cache) == 0)
+            fprintf(stderr, "Correct read and write;\n");
+        else
+        {
+            fprintf(stderr, "Error during UDP read and write;\n");
+            exit(1);
+        }
+	} 
+
+}
 
 
 
 void Option_3()
+{
+    exit(0);
+}
 
 
 
