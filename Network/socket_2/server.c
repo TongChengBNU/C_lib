@@ -4,12 +4,15 @@
 #include <sys/socket.h>
 #include <arpa/inet.h>
 
+#include <strings.h>
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <pthread.h>
 #include <time.h>
+#include <wait.h>
+#include <signal.h>
 
 // why 65535 ? 
 #define MAX_BUF_SIZE 65535
@@ -22,6 +25,7 @@ char ClientBuffer[MAX_BUF_SIZE];
 const char START_CMD[] = "START";
 const char GET_CURRENT_TIME_CMD[] = "GET CURRENT TIME";
 
+void EXIT();
 
 void *listening_thread(void *arg);
 void *UDP_service_thread(void *arg);
@@ -41,15 +45,13 @@ int Server_UDP_port = UDP_PORT_NUMBER;
 
 int main(int argc, char* argv[])
 {
-
-
     char buffer[1024];
 
 
     // Step 1: check argv[]
-    if (argc != 3) 
+    if (argc != 2) 
     {
-        fprintf(stderr, "Wrong format;\nCorrect usage: ./%s <TCP Server Port>\n ", argv[0]);
+        fprintf(stderr, "Wrong format;\nCorrect usage: %s <TCP Server Port>\n ", argv[0]);
         exit(1);
     }
 
@@ -58,7 +60,7 @@ int main(int argc, char* argv[])
     int Server_TCP_Port;
     if ( (Server_TCP_Port = atoi(argv[1])) < 0 )
     {
-        fprintf(stderr, "Wrong format;\nCorrect usage: ./%s <TCP Server Port>\n ", argv[0]);
+        fprintf(stderr, "Port number Error;\nCorrect usage: %s <TCP Server Port>\n ", argv[0]);
         exit(1);
     }
 
@@ -104,14 +106,32 @@ int main(int argc, char* argv[])
 
 
     /* Step 6: create a TCP listening thread */
-    pthread_t listening_thread_id;
-    if ( pthread_create(&listening_thread_id, NULL, listening_thread, NULL) != 0)
+    //pthread_t listening_thread_id;
+    //if ( pthread_create(&listening_thread_id, NULL, listening_thread, NULL) != 0)
+    //{
+    //    fprintf(stderr, "Listening thread creation failed;\n");
+    //    exit(1);
+    //}
+    
+    long listening_pid;
+    if ( (listening_pid = fork()) < 0 )
     {
-        fprintf(stderr, "Listening thread creation failed;\n");
+        fprintf(stderr, "Listening process creation failed;\n");
         exit(1);
     }
+    else if ( listening_pid == 0)
+    {
+        // in listening process 
 
-
+        listening_thread(NULL);
+    }
+    
+    
+    //sleep(10);
+    wait(0);
+    printf("Hello\n");
+    close(Server_TCPSock_fd);
+    close(Server_UDPSock_fd);
 
     return 0;
 }
@@ -121,10 +141,12 @@ int main(int argc, char* argv[])
 void *listening_thread(void *arg)
 {
 
+    signal(SIGINT, EXIT); 
+
     int backlog_num = 5;
     if ( listen(Server_TCPSock_fd, backlog_num) == -1)
     {
-        fprintf(stderr, "TCP listen error;\n ");
+        fprintf(stderr, "TCP listen error;\s\n ", strerror(errno));
         exit(1);
     }
 
@@ -133,26 +155,28 @@ void *listening_thread(void *arg)
     char cmd[] = " START";
 
     // accept and create TCP service thread for every loop
-    while(1)
-    {
-        if( (Client_TCPSock_fd = accept(Server_TCPSock_fd, (struct sockaddr *)(&Client_TCP_addr), sizeof(struct sockaddr))) == -1)
-        {
-            fprintf(stderr, "TCP accept error:\s\n\a ", strerror(errno));
-            exit(1);
-        }
-        fprintf(stdout, "Get connection from %s.\n", inet_ntoa(Client_TCP_addr.sin_addr));
-        fflush(stdout);
+    //while(1)
+    //{
+    //    if( (Client_TCPSock_fd = accept(Server_TCPSock_fd, (struct sockaddr *)(&Client_TCP_addr), sizeof(struct sockaddr))) == -1)
+    //    {
+    //        fprintf(stderr, "TCP accept error:\s\n\a ", strerror(errno));
+    //        exit(1);
+    //    }
+    //    fprintf(stdout, "Get connection from %s.\n", inet_ntoa(Client_TCP_addr.sin_addr));
+    //    fflush(stdout);
 
 
-        if ( pthread_create(&TCP_service_thread_id, NULL, TCP_service_thread, NULL) != 0)
-        {
-            fprintf(stderr, "TCP service thread creation failed with IP: %s;\n", inet_ntoa(Client_TCP_addr.sin_addr));
-            exit(1);
-        }
-    }
+    //    if ( pthread_create(&TCP_service_thread_id, NULL, TCP_service_thread, NULL) != 0)
+    //    {
+    //        fprintf(stderr, "TCP service thread creation failed with IP: %s;\n", inet_ntoa(Client_TCP_addr.sin_addr));
+    //        exit(1);
+    //    }
+    //}
 
     // no out entry
     // to be continued ...
+    printf("Child is about to terminate;\n");
+    exit(0);
 }
 
 
@@ -230,4 +254,9 @@ void *UDP_service_thread(void *arg)
 
     // no out entry
     // to be continued ...
+}
+
+void EXIT()
+{
+    exit(0);
 }
