@@ -17,7 +17,7 @@ void Option_3();
 
 int Server_TCP_fd;
 int TCPSock_fd, UDPSock_fd;
-int Server_TCP_Port, Server_UDP_port;
+int Server_TCP_Port, Server_UDP_Port;
 
 struct sockaddr_in Server_TCP_addr, Server_UDP_addr; 
 
@@ -73,15 +73,21 @@ int main(int argc, char* argv[])
         fprintf(stderr, "Read TCP Server Error;\n"); 
         exit(1);
     }
-    buffer[recv_count] = "\0";
-    Server_UDP_port = atoi(buffer);
+
+    Server_UDP_Port = atoi(buffer);
+    /* complete struct of UDP_Server_addr */
+    Server_UDP_addr.sin_family = AF_INET; 
+    Server_UDP_addr.sin_port = htons(Server_UDP_Port);
+    // Server_UDP_addr.sin_addr = 
+    inet_aton(argv[1], &Server_UDP_addr.sin_addr);
+
+    fprintf(stderr, "Get UDP port number from server: %d\n", Server_UDP_Port);
 
     if ( (recv_count = read(TCPSock_fd, buffer, sizeof(buffer))) == -1 )
     {
         fprintf(stderr, "Read TCP Server Error;\n"); 
         exit(1);
     }
-    buffer[recv_count] = "\0";
     strcpy(cmd, buffer);
 
 
@@ -90,8 +96,6 @@ int main(int argc, char* argv[])
         UserPrompt();
 
     return 0;
-
-
 }
 
 
@@ -123,7 +127,6 @@ void UserPrompt()
             case 3:
                 Option_3();
                 break;
-            break;
         }
     }
     exit(0);
@@ -147,48 +150,46 @@ void Option_1()
         fprintf(stderr, "Read TCP Server Error;\n"); 
         exit(1);
     }
-    buffer[recv_count] = "\0";
-    fprintf(stderr, "Current time from server: %s;\n", buffer);
+    fprintf(stderr, "Current time from server:\n");
+    fprintf(stderr, "%s", buffer);
     
-    return NULL;
 }
-
-
 
 void Option_2()
 {
 	char buffer[1024]; 
 	int recv_count; 
     char cache[1024];
+    socklen_t addr_len = sizeof(struct sockaddr);
 
-    //fgets(buffer, 1024, stdin);
-	
-    /* Loop begin */
-	while(1) 
-	{  
-		/* input data and send it to udp server */ 
-        fprintf(stderr, "Please input message to be sent to Server:\n");
 
-		fgets(buffer, 1024, stdin); 
-        strcpy(cache, buffer);
-        
-		sendto(UDPSock_fd, buffer, strlen(buffer), 0, (struct sockaddr*)(&Server_UDP_addr), sizeof(struct sockaddr));
-		bzero(buffer, 1024); 
+    /* input data and send it to udp server */ 
+    fprintf(stdout, "Please input message to be sent to Server:\n");
+    setbuf(stdin, NULL);
 
-		/* receive data from udp server */
-		recv_count = recvfrom(UDPSock_fd, buffer, 1024, 0, (struct sockaddr*)(&Server_UDP_addr), sizeof(struct sockaddr)); 
-		buffer[recv_count] = "\0"; 
+    // getchar();
+	fgets(buffer, 1024, stdin); 
+    strcpy(cache, buffer);
 
-        // validation
-        if ( strcmp(buffer, cache) == 0)
-            fprintf(stderr, "Correct read and write;\n");
-        else
-        {
-            fprintf(stderr, "Error during UDP read and write;\n");
-            exit(1);
-        }
-	} 
+    
+	sendto(UDPSock_fd, buffer, 1024, 0, (struct sockaddr*)(&Server_UDP_addr), sizeof(struct sockaddr));
+	bzero(buffer, 1024); 
 
+	/* receive data from udp server */
+	recv_count = recvfrom(UDPSock_fd, buffer, 1024, 0, (struct sockaddr*)(&Server_UDP_addr), &addr_len); 
+	// buffer[recv_count] = 0; 
+    printf("Response:%s", buffer);
+
+    // validation
+    if ( strcmp(buffer, cache) == 0)
+    {
+        fprintf(stderr, "Correct read and write;\n");
+    }
+    else
+    {
+        fprintf(stderr, "Error during UDP read and write;\n");
+        exit(1);
+    }
 }
 
 

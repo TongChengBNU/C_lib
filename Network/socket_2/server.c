@@ -140,45 +140,59 @@ int main(int argc, char* argv[])
 
 void *listening_thread(void *arg)
 {
-
     signal(SIGINT, EXIT); 
 
     int backlog_num = 5;
     if ( listen(Server_TCPSock_fd, backlog_num) == -1)
     {
-        fprintf(stderr, "TCP listen error;\s\n ", strerror(errno));
+        fprintf(stderr, "TCP listen error;\n ");
         exit(1);
     }
 
     // only one service thread is allowed.
-    pthread_t TCP_service_thread_id;
+    // pthread_t TCP_service_thread_id;
     char cmd[] = " START";
 
     // accept and create TCP service thread for every loop
-    //while(1)
-    //{
-    //    if( (Client_TCPSock_fd = accept(Server_TCPSock_fd, (struct sockaddr *)(&Client_TCP_addr), sizeof(struct sockaddr))) == -1)
-    //    {
-    //        fprintf(stderr, "TCP accept error:\s\n\a ", strerror(errno));
-    //        exit(1);
-    //    }
-    //    fprintf(stdout, "Get connection from %s.\n", inet_ntoa(Client_TCP_addr.sin_addr));
-    //    fflush(stdout);
+    while(1)
+    {
+        socklen_t addr_len = sizeof(struct sockaddr);
+        if( (Client_TCPSock_fd = accept(Server_TCPSock_fd, (struct sockaddr *)(&Client_TCP_addr), &addr_len)) == -1)
+        {
+            //fprintf(stderr, "TCP accept error:\s\n\a ", strerror(errno));
+            fprintf(stderr, "TCP accept error;\n");
+            exit(1);
+        }
+        fprintf(stdout, "Get connection from %s.\n", inet_ntoa(Client_TCP_addr.sin_addr));
+        fflush(stdout);
 
 
-    //    if ( pthread_create(&TCP_service_thread_id, NULL, TCP_service_thread, NULL) != 0)
-    //    {
-    //        fprintf(stderr, "TCP service thread creation failed with IP: %s;\n", inet_ntoa(Client_TCP_addr.sin_addr));
-    //        exit(1);
-    //    }
-    //}
+        //if ( pthread_create(&TCP_service_thread_id, NULL, TCP_service_thread, NULL) != 0)
+        //{
+        //    fprintf(stderr, "TCP service thread creation failed with IP: %s;\n", inet_ntoa(Client_TCP_addr.sin_addr));
+        //    exit(1);
+        //}
+
+        long TCP_service_pid;
+        if ( (TCP_service_pid = fork()) < 0)
+        {
+            fprintf(stderr, "TCP service process failed;\n");
+            exit(1);
+        }
+        else if (TCP_service_pid == 0)
+        {
+            // in TCP service process
+            fprintf(stderr, "TCP service creation success;\n");
+            TCP_service_thread(NULL);
+        }
+
+    }
 
     // no out entry
     // to be continued ...
     printf("Child is about to terminate;\n");
     exit(0);
 }
-
 
 void *TCP_service_thread(void *arg)
 {
@@ -205,6 +219,18 @@ void *TCP_service_thread(void *arg)
         exit(1);
     }
 
+    pid_t UDP_service_pid; 
+    if ( (UDP_service_pid=fork()) < 0 )
+    {
+        fprintf(stderr, "UDP service creation failed;\n");
+        exit(1);
+    }
+    else if ( UDP_service_pid == 0 )
+    {
+        fprintf(stderr, "UDP service creation success;\n");
+        UDP_service_thread(NULL);
+    }
+
     time_t now;
     while (1)
     {
@@ -213,7 +239,7 @@ void *TCP_service_thread(void *arg)
             fprintf(stderr, "Read Client Error;\n"); 
             exit(1);
         }
-        buffer[recv_count] = "\0";
+        // buffer[recv_count] = "\0";
         if ( strcmp(option_1, buffer) == 0)
         {
             // sent local system time
@@ -234,22 +260,24 @@ void *TCP_service_thread(void *arg)
     // to be continued ...
 }
 
-
 void *UDP_service_thread(void *arg)
 {
     // to be continued ...
 	struct sockaddr_in addr; 
 	int addrlen, recv_count; 
 	char buffer[1024]; 
+    socklen_t addr_len = sizeof(struct sockaddr);
 	while(1) 
 	{  
         /* read data from internet; */
-        socklen_t len_addr = sizeof(struct sockaddr);
-		recv_count = recvfrom(Server_UDPSock_fd, buffer, 1024, 0, (struct sockaddr*)&addr, &len_addr);
-		buffer[recv_count] = "\0";
+		recv_count = recvfrom(Server_UDPSock_fd, buffer, 1024, 0, (struct sockaddr*)&addr, &addr_len);
+
+        fprintf(stderr, "Received message:%s", buffer);
 
         /* send info received back to client; */
-		sendto(Server_UDPSock_fd, buffer, recv_count, 0, (struct sockaddr*)&addr, sizeof(struct sockaddr)); 
+		sendto(Server_UDPSock_fd, buffer, 1024, 0, (struct sockaddr*)&addr, sizeof(struct sockaddr)); 
+
+        printf("Send back to client;\n");
 	} 
 
     // no out entry
