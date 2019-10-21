@@ -1,8 +1,12 @@
 <<<<<<< HEAD
+<<<<<<< HEAD
 /*******·þÎñÆ÷³ÌÐò(server.c) ************/
 =======
 /*******·(tcpserver.c) ************/
 >>>>>>> origin_C_lib/master
+=======
+/*******(tcpserver.c) ************/
+>>>>>>> b53545b4c5ecfbd8eec18d1daffc6905d3300ae9
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
