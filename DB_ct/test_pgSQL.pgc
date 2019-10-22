@@ -1,0 +1,87 @@
+// ----------------------------------------------------------------------
+// Step 1:
+// ./ecpg -t -c -I <pg include dir path> -o <.c output> <.pgc source> 
+// Step 2:
+// gcc -I <pg include dir path> -Wall -g <.c source> -L <pg lib dir path> -lecpg -lpq -lpgtypes -o <output exec>
+// 
+// ----------------------------------------------------------------------
+
+
+#include <stdio.h>
+#include <stdlib.h>
+
+int main()
+{   
+    exec sql whenever sqlwarning sqlprint;
+    exec sql whenever sqlerror sqlprint;
+
+    // connect to DB server
+    exec sql connect to "tmp@127.0.0.1:5432" user "postgres" using "980126"; 
+
+    // execute DML 
+    // exec sql insert into examinee (eeid) values ('555');
+
+
+
+    // shared variables 
+    exec sql begin declare section;
+        char id[30]="218811011013"; 
+        char name[20];
+        int  eeage;  
+    exec sql end declare section;
+
+    // query from table
+    // exec sql select eename, eeage
+    //    into :name, :eeage
+    //    from examinee
+    //    where eeid = :id;
+    // exec sql disconnect;
+
+    // printf("id=%s, name=%s, grade=%d\n", id, name, eeage);
+
+
+
+
+    EXEC  SQL  BEGIN  DECLARE  SECTION;
+		char id[10] ="1";
+		char name[20]="abcd";
+		int  grade;
+		int varsgrade;
+		int varname;
+	EXEC  SQL  END  DECLARE  SECTION;
+	EXEC SQL DECLARE queryc CURSOR WITH HOLD FOR 
+
+	         SELECT eeid,eename,grade
+	         FROM examinee;
+	EXEC SQL OPEN queryc;
+	
+	do {
+		if(grade==0) 
+		  varsgrade=-1;
+		else
+		  varsgrade=0;
+		  
+		if(name[0]=='\0') 
+		  varname=-1;
+		else
+		  varname=0;
+		
+		
+		  
+		EXEC SQL FETCH FROM queryc
+		         INTO  :id,:name:varname,:grade:varsgrade;
+		if (!strcmp(SQLSTATE,"02000"))break;
+		
+	
+	
+		printf("id=%s, name=%s, grade=%d\n",id,name,grade);
+		
+	    name[0]='\0';
+		grade=0;
+
+	} while (strcmp(SQLSTATE,"02000"));
+	exec sql close queryc;
+	EXEC SQL DISCONNECT;
+
+    return 0;
+}
