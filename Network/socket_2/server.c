@@ -17,8 +17,6 @@
 // why 65535 ? 
 #define MAX_BUF_SIZE 65535
 
-#define ERROR 0
-#define NORMAL 1
 #define UDP_PORT_NUMBER 8888
 
 char ClientBuffer[MAX_BUF_SIZE];
@@ -132,6 +130,8 @@ int main(int argc, char* argv[])
     printf("Hello\n");
     close(Server_TCPSock_fd);
     close(Server_UDPSock_fd);
+    close(Client_TCPSock_fd);
+    close(Client_UDPSock_fd);
 
     return 0;
 }
