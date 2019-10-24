@@ -125,9 +125,23 @@ int main(int argc, char* argv[])
     }
     
     
-    //sleep(10);
-    wait(0);
-    printf("Hello\n");
+    // sleep(10);
+    // wait(0);
+
+    int status;
+    if (waitpid(-1, &status, 0) == -1)
+    {
+        fprintf(stderr, "Wait pid error;\n");
+    }
+    else
+    {
+        if (WIFEXITED(status))
+        {
+            printf("Child process with status code %d has terminated;\n", WEXITSTATUS(status));
+        }
+    }
+
+    // printf("Hello\n");
     close(Server_TCPSock_fd);
     close(Server_UDPSock_fd);
     close(Client_TCPSock_fd);
