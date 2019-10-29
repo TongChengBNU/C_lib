@@ -40,6 +40,15 @@ int main()
 {
     signal(SIGINT, clean);
 
+    // get shared memory created by writer
+    if ( (shm_id = shmget(SHMKEY, 0, 0)) == -1)
+    {
+        perror("Get shared memory error;\n");
+        exit(1);
+    }
+    printf("Shared memory id:%d\n", shm_id);
+
+
     // get semaphore set created by writer
     sem_id = semget(SEMKEY, 3, 0666);
     printf("Semaphore set id:%d;\n", sem_id);
@@ -53,14 +62,7 @@ int main()
         printf("Mutex sema value:%d\n", tmp);
 
 
-    // get shared memory created by writer
-    if ( (shm_id = shmget(SHMKEY, 0, 0)) == -1)
-    {
-        perror("Get shared memory error;\n");
-        exit(1);
-    }
-    printf("Shared memory id:%d\n", shm_id);
-
+    // initialization
     block_ptr = (struct block *)shmat(shm_id, 0, 0);
     for (int i=0; i<BUFFER_NUM+2; i++)
     {
@@ -114,13 +116,28 @@ void Option1()
 {
     char buffer[1024];
 
-    semop(sem_id, &P[0], 1);
-    semop(sem_id, &V[0], 1);
+    // full - 1
+    semop(sem_id, &P[1], 1);
+    // mutex - 1
+    semop(sem_id, &P[2], 1);
 
-    int index;
+    int index, next;
     index = atoi(shm_ptr[11]->buffer);
+
     strcpy(buffer, shm_ptr[index]->buffer);
-    printf("Read from shared memory: %s;\n", buffer);
+    fprintf(stderr, "Read from position: %d;\n", index);
+    printf("Contents: %s\n", buffer);
+    next = index+1;
+    if (next > 9)
+    {
+        next = next % 10;
+    }
+    sprintf(shm_ptr[11]->buffer, "%d", next);
+    
+    // mutex + 1
+    semop(sem_id, &V[2], 1);
+    // empty + 1
+    semop(sem_id, &V[0], 1);
 
     return;
 }
