@@ -191,7 +191,7 @@ void Option2()
 
 void Option3()
 {
-    shmctl(shm_id, IPC_RMID, 0);
+    shmctl(shm_id, IPC_RMID, NULL);
     semctl(sem_id, 0, IPC_RMID);
     semctl(sem_id, 1, IPC_RMID);
     semctl(sem_id, 2, IPC_RMID);
@@ -200,7 +200,7 @@ void Option3()
 
 void clean()
 {
-    shmctl(shm_id, IPC_RMID, 0);
+    shmctl(shm_id, IPC_RMID, NULL);
     semctl(sem_id, 0, IPC_RMID);
     semctl(sem_id, 1, IPC_RMID);
     semctl(sem_id, 2, IPC_RMID);
