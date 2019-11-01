@@ -58,11 +58,11 @@ int main(int argc, char *argv[])
     read(client_sock_fd, response, sizeof(response));
     read(client_sock_fd, recv_message, sizeof(recv_message));
 
-    printf("Response: %s\n", response);
-    printf("Recv: %s\n", recv_message);
+    //printf("Response: %s\n", response);
+    //printf("Recv: %s\n", recv_message);
     FILE *fp = NULL;
     fp = fopen("./recv.html", "w+");
-    // fprintf(fp, "%s", response);
+    fprintf(fp, "%s", response);
     fprintf(fp, "%s", recv_message);
     fclose(fp);
 
