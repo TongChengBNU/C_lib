@@ -24,6 +24,7 @@ int main(int argc, char *argv[])
 
 	return 0;
 }
+
 long To_Binary1(int num)
 {
 	int round = 1, remainder;
