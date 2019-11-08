@@ -3,10 +3,19 @@
 #include "libct.h"
 
 typedef char CRC8_t;
+typedef int CRC_ITU_t;
 #define CRC8 0x31;
 // generating function 
 // 100110001
 // x^8 + x^5 + x^4 + 1
+#define CRC_ITU 0x1021;
+// generating function
+// 10001000000100001
+// x^16 + x^12 + x^5 + 1
+#define CRC_32 0x04c11db7;
+// generating function
+// 100000100110000010001110110110111
+// x^32 + x^26 + x^23 + x^22 + x^16 + x^12 + x^11 + x^10 + x^8 + x^7 + x^5 + x^4 + x^2 + x + 1
 
 CRC8_t crc8_simple(char *data, int length);
 
