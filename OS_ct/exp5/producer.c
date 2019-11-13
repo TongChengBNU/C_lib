@@ -41,11 +41,11 @@ int main()
     shm_key = SHMKEY;
 
     // get key for semaphore set
-    if ( (sem_key = ftok("producer.c", 0x66)) < 0)
-    {
-        perror("ftok semaphore key error;\n");
-        exit(1);
-    }
+    // if ( (sem_key = ftok("producer.c", 0x66)) < 0)
+    // {
+    //     perror("ftok semaphore key error;\n");
+    //     exit(1);
+    // }
     
     // create shared memory with id (shm_id)
     if ( (shm_id = shmget(shm_key, (BUFFER_NUM+2)*BUFFER_PER_LENGTH, 0777|IPC_CREAT|IPC_EXCL)) < 0)
@@ -70,7 +70,7 @@ int main()
     }
     else
     {
-        // create shm initialization
+        // create new shm initialization
         block_ptr = (struct block *)shmat(shm_id, 0, 0);
         for (int i=0; i<BUFFER_NUM+2; i++)
         {
@@ -104,10 +104,12 @@ int main()
     {
         P[i].sem_num = i;
         P[i].sem_op = -1;
-        P[i].sem_flg = SEM_UNDO;
+		// when a process terminates, the semaphore will return to its original value
+        // P[i].sem_flg = SEM_UNDO;
+
         V[i].sem_num = i;
         V[i].sem_op = 1;
-        V[i].sem_flg = SEM_UNDO;
+        // V[i].sem_flg = SEM_UNDO;
     }
 
     

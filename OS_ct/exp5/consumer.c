@@ -74,10 +74,11 @@ int main()
     {
         P[i].sem_num = i;
         P[i].sem_op = -1;
-        P[i].sem_flg = SEM_UNDO;
+		// when a process terminates, the semaphore will return to its original value
+        // P[i].sem_flg = SEM_UNDO;
         V[i].sem_num = i;
         V[i].sem_op = 1;
-        V[i].sem_flg = SEM_UNDO;
+        // V[i].sem_flg = SEM_UNDO;
     }
 
     int option;
