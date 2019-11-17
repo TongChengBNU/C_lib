@@ -35,11 +35,29 @@ void change(Node *ptr)
 	ptr2->begin++;
 }
 
+void allocate(Node *ptr)
+{
+	//ptr = (Node *)malloc(sizeof(Node));
+	ptr->length = 100;
+	Node *new = (Node *)malloc(sizeof(Node));
+	new->before = ptr;
+	new->length = 50;
+	ptr->next = new;
+}
+
 int main(int argc, char *argv[])
 {
-	Node *test = (Node *)malloc(sizeof(Node));
-	change(test);
-	printf("%d", test->begin);
+	//Node *test = (Node *)malloc(sizeof(Node));
+	//change(test);
+	//printf("%d\n", test->begin);
+
+	//bool var=true;
+	//printf("%d\n", var);
+	
+	Node *ptr;
+	ptr = (Node *)malloc(sizeof(Node));
+	allocate(ptr);
+	printf("%d\n", ptr->next->length);
 
 
 	return 0;
