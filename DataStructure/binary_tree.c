@@ -41,8 +41,12 @@ int main(int argc, char *argv[])
 	tree->data = 1;
 	initialization_demo(tree);
 	pre_order_traversal(tree);
+	putchar('\n');
 	in_order_traversal(tree);
+	putchar('\n');
 	post_order_traversal(tree);
+	putchar('\n');
+
 
 
 	return 0;
@@ -77,27 +81,24 @@ void pre_order_traversal(Node *root)
 	printf("%d", root->data);
 	pre_order_traversal(root->left);
 	pre_order_traversal(root->right);
-	putchar('\n');
 }
 void in_order_traversal(Node *root)
 {
 	if (root == NULL)
 		return;
 
-	pre_order_traversal(root->left);
+	in_order_traversal(root->left);
 	printf("%d", root->data);
-	pre_order_traversal(root->right);
-	putchar('\n');
+	in_order_traversal(root->right);
 }
 void post_order_traversal(Node *root)
 {
 	if (root == NULL)
 		return;
 
-	pre_order_traversal(root->left);
-	pre_order_traversal(root->right);
+	post_order_traversal(root->left);
+	post_order_traversal(root->right);
 	printf("%d", root->data);
-	putchar('\n');
 }
 
 void show_state(Node *root)
