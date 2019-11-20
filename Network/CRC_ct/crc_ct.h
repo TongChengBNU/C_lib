@@ -8,8 +8,6 @@
 #ifndef __CRC_CT__
 #define __CRC_CT__
 
-#include <stdlib.h>
-#include <stdio.h>
 
 typedef char CRC8_t;
 typedef uint16_t CRC16_t;
@@ -17,8 +15,7 @@ typedef uint16_t CCITT_t;
 typedef int CRC32_t;
 typedef unsigned short width_t;
 
-#define WIDTH (8 * sizeof(width_t))
-#define TOPBIT (1 << (WIDTH - 1))
+// method 1
 #define CRC8 0x31
 // generating function 
 // 100110001
@@ -32,9 +29,17 @@ typedef unsigned short width_t;
 // 100000100110000010001110110110111
 // x^32 + x^26 + x^23 + x^22 + x^16 + x^12 + x^11 + x^10 + x^8 + x^7 + x^5 + x^4 + x^2 + x + 1
 
+CRC8_t crc8_simple(char *data_ori, int length, CRC8_t crc);
+CCITT_t ccitt_simple(char *data, int length);
+CRC32_t crc32_simple(char *data, int length, CRC32_t crc);
 
 
 
+
+
+// method 2
+#define WIDTH (8 * sizeof(width_t))
+#define TOPBIT (1 << (WIDTH - 1))
 
 // 2 byte
 typedef unsigned short CRC_t;
@@ -46,35 +51,25 @@ struct CRC_GF_2{
 	CRC_t initial_remainder;
 	CRC_t final_xor_value;
 };
-
 struct CRC_GF_4{
 	CRC_wid_t polynomial;
 	CRC_wid_t initial_remainder;
 	CRC_wid_t final_xor_value;
 };
 
-struct CRC_GF_2 CRC16 = {0x8005, 0x0000, 0x0000};
-//struct CRC_GF_2 CCITT = {0x1021, 0xffff, 0x0000};
+struct CRC_GF_2 CRC16 = {0x1021, 0xffff, 0x0000};
 struct CRC_GF_4 CRC32 = {0x04c11db7, 0xffffffff, 0xffffffff};
-
-
-
-CRC8_t crc8_simple(char *data_ori, int length, CRC8_t crc);
-
-CCITT_t ccitt_single(char *data, int length);
-CCITT_t ccitt_simple(char *data, int length);
-
-CRC32_t crc32_single(char *data, int length, CRC32_t crc);
 
 width_t *crcInit(struct CRC_GF_2 crc);
 width_t crcCompute(unsigned char *message, unsigned int nBytes, struct CRC_GF_2 crc, width_t crcTable[]);
 
+
+
+
+
+
+
 void interactive_crcCompute();
-
-
-
-
-
 long DecimalToBinary(long decimal)
 {
 	long ret = 0;
@@ -88,6 +83,51 @@ long DecimalToBinary(long decimal)
 	return ret;
 }
 
+/* Demo of CRC8
+ * 'T' 'O' 0101 0100 0100 1111
+ *
+ *                  101                              
+ *                ---------------------------
+ *      100110001/ 010101000100111100000000
+ *                  100110001                                     
+ *                  -----------------------------                    
+ *                  00110000000                                      
+ *                    100110001                                   
+ *                    -----------------------
+ *                    0101100011
+ *                     100110001                                   
+ *                     ---------------------
+ *                     00101001011                                   
+ *                       100110001                                  
+ *                       ---------------------
+ *                       00111101010                                 
+ *                         100110001                               
+ *                         -------------------
+ *                         0110110110                               
+ *                          100110001                              
+ *                          -----------------
+ *                          0100001110
+ *                           100110001
+ *                           ------------------
+ *                           000111111000                             
+ *                              100110001                          
+ *                              -----------------
+ *                              0110010010                          
+ *                               100110001                         
+ *                               ----------------
+ *                               0101000110
+ *                                100110001
+ *                                -------------------
+ *                                001110111  
+ *  cksum: 0111 0111 0x77
+ * */
 
+/* Demo CCITT (CRC16)
+ *  input: 123456789
+ *  output: 0x29b1
+ *
+ *
+ *
+ * */
 
 #endif
