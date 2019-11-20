@@ -59,8 +59,7 @@ struct CRC_GF_4 CRC32 = {0x04c11db7, 0xffffffff, 0xffffffff};
 
 
 
-CRC8_t crc8_single(char *data, int length);
-CRC8_t crc8_simple(char *data, int length);
+CRC8_t crc8_simple(char *data_ori, int length, CRC8_t crc);
 
 CCITT_t ccitt_single(char *data, int length);
 CCITT_t ccitt_simple(char *data, int length);

@@ -20,38 +20,21 @@ int main(int argc, char *argv[])
 	return 0;
 }
 
-CRC8_t crc8_single(char *data, int length)
+CRC8_t crc8_simple(char *data_ori, int length, CRC8_t crc)
 {
-	CRC8_t crc_reg = *data++;
+	CRC8_t crc_reg = crc;
  	unsigned short count;
+	char *data = data_ori;
 	for (; length>1; length--)
 	{
 		for(count=0;count<8;count++)
 		{
-			crc_reg <<= 1;
-			if ( *data & (0x80>>count) )
-				crc_reg |= 0x1;
-			crc_reg ^= CRC8;
-		}
-		data++;
-	}
-	
-	return crc_reg;
-}
-
-CRC8_t crc8_simple(char *data, int length)
-{
-	CRC8_t crc_reg = *data++;
- 	unsigned short count;
-	for (; length>1; length--)
-	{
-		for(count=0;count<8;count++)
-		{
-			if (crc_reg & 0x80)	
+			if(crc_reg>>7)
 			{
 				crc_reg <<= 1;
 				if ( *data & (0x80>>count) )
 					crc_reg |= 0x1;
+
 				crc_reg ^= CRC8;
 			}
 			else
@@ -63,9 +46,28 @@ CRC8_t crc8_simple(char *data, int length)
 		}
 		data++;
 	}
+	*data = 0;
+	for(count=0;count<8;count++)
+	{
+		if(crc_reg>>7)
+		{
+			crc_reg <<= 1;
+			if ( *data & (0x80>>count) )
+				crc_reg |= 0x1;
+
+			crc_reg ^= CRC8;
+		}
+		else
+		{
+			crc_reg <<= 1;
+			if ( *data & (0x80>>count) )
+				crc_reg |= 0x1;
+		}
+	}
 	
 	return crc_reg;
 }
+
 
 CCITT_t ccitt_single(char *data, int length)
 {
@@ -172,14 +174,16 @@ void interactive_crcCompute()
 		char buffer[1024];
 		int cksum;
 		printf("Please input your message:\n");
-		setbuf(stdin, NULL);
-		fgets(buffer, 1024, stdin);
+		//setbuf(stdin, NULL);
+		bzero(buffer, 1024);
+		scanf("%s", buffer);
+		//fgets(buffer, 1024, stdin);
 		printf("Please select a method below:\n");
 		printf("1. CRC8; 2. CCITT; 3. CRC32;\n");
 		scanf("%d", &option);
 		switch(option){
 			case 1:
-				cksum = crc8_simple(buffer, strlen(buffer));
+				cksum = crc8_simple(buffer, strlen(buffer), 0);
 				printf("cksum:%02x\n", cksum);
 				break;
 			case 2:
