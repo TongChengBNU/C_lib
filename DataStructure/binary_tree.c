@@ -21,6 +21,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+
 typedef unsigned int element_t;
 
 typedef struct node{
@@ -29,11 +30,17 @@ typedef struct node{
 	struct node *right;
 }Node;
 
+typedef struct queue{
+	Node *data;	
+	struct queue *next;
+}Queue;
+
 void initialization_demo(Node *root);
 void pre_order_traversal(Node *root);
+void pre_order_traversal_nonrecursive(Node *root, unsigned int tree_depth);
 void in_order_traversal(Node *root);
 void post_order_traversal(Node *root);
-void show_state(Node *root);
+void layer_traversal(Node *root);
 
 int main(int argc, char *argv[])
 {
@@ -42,15 +49,31 @@ int main(int argc, char *argv[])
 	initialization_demo(tree);
 	pre_order_traversal(tree);
 	putchar('\n');
-	in_order_traversal(tree);
+	pre_order_traversal_nonrecursive(tree, 3);
 	putchar('\n');
-	post_order_traversal(tree);
+	//in_order_traversal(tree);
+	//putchar('\n');
+	//post_order_traversal(tree);
+	//putchar('\n');
+	layer_traversal(tree);
 	putchar('\n');
 
 
 
 	return 0;
 }
+
+
+
+
+
+
+
+
+
+
+
+
 
 void initialization_demo(Node *root)
 {	
@@ -101,7 +124,68 @@ void post_order_traversal(Node *root)
 	printf("%d", root->data);
 }
 
-void show_state(Node *root)
+void pre_order_traversal_nonrecursive(Node *root, unsigned int tree_depth)
 {
+	Node *stack[tree_depth+1];
+	stack[0] = NULL; // stack 1st element should be NULL to terminate the loop
+	unsigned int top=1;	
+	Node *ptr = root;
+	while(ptr)
+	{
+		printf("%d", ptr->data);	
+
+		if(ptr->right)
+		{
+			stack[top++] = ptr->right;
+		}
+		if(ptr->left)
+		{
+			// ptr->left not NULL
+			ptr = ptr->left;
+		}
+		else
+		{
+			// ptr->left is NULL	
+			ptr = stack[--top];
+		}
+	}
 }
 
+void layer_traversal(Node *root)
+{
+	Queue *queue_tmp = (Queue *)malloc(sizeof(Queue));
+	queue_tmp->data = root;
+	queue_tmp->next = NULL;
+
+	Queue *front, *rear;
+	front = queue_tmp;
+	rear = queue_tmp;
+
+	Queue *left, *right, *tmp;
+	Node *cur_node;
+	while(front)
+	{
+		cur_node = front->data;
+		printf("%d", cur_node->data);
+		if(cur_node->left)
+		{
+			left = (Queue *)malloc(sizeof(Queue));
+			left->data = cur_node->left;
+			rear->next = left;
+			rear = left;
+		}
+		if(cur_node->right)
+		{
+			right = (Queue *)malloc(sizeof(Queue));
+			right->data = cur_node->right;
+			rear->next = right;
+			rear = right;
+		}
+		tmp = front;
+		front = front->next;
+		//free(tmp);
+		// to be continued ...
+		// how to manage this queue to save memory??
+	}
+
+}
