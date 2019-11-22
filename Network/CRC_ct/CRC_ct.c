@@ -10,10 +10,7 @@ char data_ccitt[] = {'1','2','3','4','5','6','7','8','9'};
 
 int main(int argc, char *argv[])
 {
-
-	
 	interactive_crcCompute();
-
 	return 0;
 }
 
@@ -66,9 +63,9 @@ CRC8_t crc8_simple(char *data_ori, int length, CRC8_t crc)
 	return crc_reg;
 }
 
-CCITT_t ccitt_simple(char *data, int length)
+CCITT_t ccitt_simple(char *data, int length, CCITT_t crc_last)
 {
-	CCITT_t crc = 0xffff;
+	CCITT_t crc = crc_last;
 	int i;
 
 	for(; length>0; length--)
@@ -81,15 +78,18 @@ CCITT_t ccitt_simple(char *data, int length)
 	return crc;
 }
 
-CRC32_t crc32_simple(char *data, int length, CRC32_t crc)
+CRC32_t crc32_simple(char *data, int length, CRC32_t crc_last)
 {
-	// to be continued...
+	CRC32_t crc = crc_last;
 	int i;
+
 	for(;length>0;length--)
 	{
-		crc = crc ^(*data++ <<24);
+		crc = crc ^ (*data++ <<24);
+		for(i=0;i<8;i++)
+			crc = (crc << 1) ^ (CRC_32 * ((crc&0x80000000)>>31));
+		crc &= 0xffffffff;
 	}
-
 	return crc;
 }
 
@@ -163,15 +163,17 @@ void interactive_crcCompute()
 		scanf("%d", &option);
 		switch(option){
 			case 1:
+				// 
 				cksum = crc8_simple(buffer, strlen(buffer), 0);
 				printf("cksum:%02x\n", cksum);
 				break;
 			case 2:
-				cksum = ccitt_simple(buffer, strlen(buffer));
+				cksum = ccitt_simple(buffer, strlen(buffer), 0xffff);
 				printf("cksum:%04x\n", cksum);
 				break;
 			case 3:
-				printf("Not finished;\n");
+				cksum = crc32_simple(buffer, strlen(buffer), 0xffffffff);
+				printf("cksum:%08x\n", cksum);
 				break;
 			case 4:
 				crcTable = crcInit(CRC16);

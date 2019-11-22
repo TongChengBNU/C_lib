@@ -17,6 +17,7 @@ typedef unsigned short width_t;
 
 // method 1
 #define CRC8 0x31
+// #define CRC8 0x07
 // generating function 
 // 100110001
 // x^8 + x^5 + x^4 + 1
@@ -30,8 +31,8 @@ typedef unsigned short width_t;
 // x^32 + x^26 + x^23 + x^22 + x^16 + x^12 + x^11 + x^10 + x^8 + x^7 + x^5 + x^4 + x^2 + x + 1
 
 CRC8_t crc8_simple(char *data_ori, int length, CRC8_t crc);
-CCITT_t ccitt_simple(char *data, int length);
-CRC32_t crc32_simple(char *data, int length, CRC32_t crc);
+CCITT_t ccitt_simple(char *data, int length, CCITT_t crc_last);
+CRC32_t crc32_simple(char *data, int length, CRC32_t crc_last);
 
 
 
@@ -125,9 +126,59 @@ long DecimalToBinary(long decimal)
 /* Demo CCITT (CRC16)
  *  input: 123456789
  *  output: 0x29b1
- *
- *
- *
  * */
 
+/* Demo CRC32
+ * 'T' 'O' 0101 0100 0100 1111
+ *
+ *                                   -----------------------------------------------------------
+ * 100000100110000010001110110110111/010101000100111100000000000000000000000000000000
+ *                                    100000100110000010001110110110111
+ *                                   ----------------------------------
+ *									  00101010111111101000111011011011100 
+ *                                      100000100110000010001110110110111
+ *                                      ---------------------------------
+ *                                      00101001100110101011010110110101100
+ *                                        100000100110000010001110110110111
+ *                                        ---------------------------------
+ *                                        00100100000010100101100000001101100
+ *                                          100000100110000010001110110110111 
+ *                                          ---------------------------------
+ *                                          000100100100100111101110111011011000
+ *                                             100000100110000010001110110110111
+ *                                             ---------------------------------
+ *                                             000100000010111111111001101101111000
+ *                                                100000100110000010001110110110111
+ *                                                ---------------------------------
+ *                                                00000011000111110100001101100111100
+ * cksum:0001 1000 1111 1010 0001 1011 0011 1100
+ *       0x1fa1b3c
+ *       But this computation was operated under initial value 0 and final XOR value 0;
+ * */
+
+/* http://www.ip33.com/crc.html
+CRC算法名称	多项式公式	宽度	多项式	初始值	结果异或值	输入值反转	输出值反转
+CRC-4/ITU	x4 + x + 1	4	03	00	00	true	true
+CRC-5/EPC	x4 + x3 + 1	5	09	09	00	false	false
+CRC-5/ITU	x5 + x4 + x2 + 1	5	15	00	00	true	true
+CRC-5/USB	x5 + x2 + 1	5	05	1F	1F	true	true
+CRC-6/ITU	x6 + x + 1	6	03	00	00	true	true
+CRC-7/MMC	x7 + x3 + 1	7	09	00	00	false	false
+CRC-8	x8 + x2 + x + 1	8	07	00	00	false	false
+CRC-8/ITU	x8 + x2 + x + 1	8	07	00	55	false	false
+CRC-8/ROHC	x8 + x2 + x + 1	8	07	FF	00	true	true
+-- CRC-8/MAXIM	x8 + x5 + x4 + 1	8	31	00	00	true	true
+CRC-16/IBM	x6 + x5 + x2 + 1	16	8005	0000	0000	true	true
+CRC-16/MAXIM	x6 + x5 + x2 + 1	16	8005	0000	FFFF	true	true
+CRC-16/USB	x6 + x5 + x2 + 1	16	8005	FFFF	FFFF	true	true
+CRC-16/MODBUS	x6 + x5 + x2 + 1	16	8005	FFFF	0000	true	true
+CRC-16/CCITT	x6 + x2 + x5 + 1	16	1021	0000	0000	true	true
+-- CRC-16/CCITT-FALSE	x6 + x2 + x5 + 1	16	1021	FFFF	0000	false	false
+CRC-16/x5	x6 + x2 + x5 + 1	16	1021	FFFF	FFFF	true	true
+CRC-16/XMODEM	x6 + x2 + x5 + 1	16	1021	0000	0000	false	false
+CRC-16/DNP	x6 + x3 + x2 + x1 + x0 + x8 + x6 + x5 + x2 + 1	16	3D65	0000	FFFF	true	true
+CRC-32	x2 + x6 + x3 + x2 + x6 + x2 + x1 + x0 + x8 + x7 + x5 + x4 + x2 + x + 1	32	04C11DB7	FFFFFFFF	FFFFFFFF	true	true
+-- CRC-32/MPEG-2	x32 + x6 + x3 + x2 + x6 + x2 + x1 + x0 + x8 + x7 + x5 + x4 + x2 + x + 1	32	04C11DB7	FFFFFFFF	00000000	false	false
+ *
+ * */
 #endif
