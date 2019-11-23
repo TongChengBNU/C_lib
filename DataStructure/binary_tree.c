@@ -35,28 +35,45 @@ typedef struct queue{
 	struct queue *next;
 }Queue;
 
+typedef enum{
+	Left=0,
+	Right=1
+}Type;
+
+typedef struct{
+	Node *ptr;
+	Type type;
+}Stack;
+
+typedef Stack Stack_t;
+
 void initialization_demo(Node *root);
+void display_node(Node *node);
 void pre_order_traversal(Node *root);
 void pre_order_traversal_nonrecursive(Node *root, unsigned int tree_depth);
 void in_order_traversal(Node *root);
 void post_order_traversal(Node *root);
 void layer_traversal(Node *root);
+void in_order_traversal_nonrecursive(Node *root, unsigned int tree_depth);
+void post_order_traversal_nonrecursive(Node *root, unsigned int tree_depth);
 
 int main(int argc, char *argv[])
 {
 	Node *tree = (Node *)malloc(sizeof(Node));
 	tree->data = 1;
 	initialization_demo(tree);
-	pre_order_traversal(tree);
+	display_node(tree);
 	putchar('\n');
-	pre_order_traversal_nonrecursive(tree, 3);
+	post_order_traversal(tree);
+	putchar('\n');
+	post_order_traversal_nonrecursive(tree, 3);
 	putchar('\n');
 	//in_order_traversal(tree);
 	//putchar('\n');
 	//post_order_traversal(tree);
 	//putchar('\n');
-	layer_traversal(tree);
-	putchar('\n');
+	//layer_traversal(tree);
+	//putchar('\n');
 
 
 
@@ -189,3 +206,72 @@ void layer_traversal(Node *root)
 	}
 
 }
+
+void display_node(Node *node)
+{
+	printf("%d", node->data);
+}
+
+
+void in_order_traversal_nonrecursive(Node *root, unsigned int tree_depth)
+{
+	Node *stack[tree_depth];	
+	int top = 0;
+	int flag = 2;
+	Node *ptr = root;
+	do{
+		while(ptr)
+		{
+			stack[top++] = ptr;
+			ptr = ptr->left;
+		}
+		if(top>0)
+		{
+			ptr = stack[--top];
+			display_node(ptr);
+			ptr = ptr->right;
+		}
+	}while(top>0 || ptr);
+	return;
+	
+}
+
+// need more thinking
+void post_order_traversal_nonrecursive(Node *root, unsigned int tree_depth)
+{
+	Stack_t stack[tree_depth];
+	int top = 0;
+	Node *ptr = root;
+
+	do{
+		while(ptr)
+		{
+			stack[top].ptr = ptr;
+			stack[top++].type = Left;
+			ptr = ptr->left;
+		}
+
+		int continue_flag = 1;
+		while(continue_flag && top>0)
+		{
+			ptr = stack[--top].ptr;
+			switch(stack[top].type)
+			{
+				case Left:
+					stack[top].ptr = ptr;
+					stack[top++].type = Right;
+					continue_flag = 0;
+					ptr = ptr->right;
+					break;
+				case Right:
+					display_node(ptr);
+					break;
+			}
+		}
+
+	
+	}while(top>0);
+	return;
+}
+
+
