@@ -13,13 +13,24 @@ typedef enum{
 	Right=1
 }Type;
 
+void swap(int *a, int *b)
+{
+	int tmp=*a;	
+	*a = *b;
+	*b = tmp;
+}
 
 int main(int argc, char *argv[])
 {
-	Type tmp;
-	tmp = Right;
-	printf("%d\n", tmp);
+	//Type tmp;
+	//tmp = Right;
+	//printf("%d\n", tmp);
 
+	int data[3] = {1,2,3};
+	int *a = &data[0], *b = &data[1];
+	swap(a, b);
+	printf("%d %d\n", data[0], data[1]);
+	printf("%d %d\n", *a, *b);
 
 
 
