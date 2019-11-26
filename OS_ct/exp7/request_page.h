@@ -25,7 +25,7 @@ typedef struct page{
 	int physical_number; // physical block number, initial value->0
 	int disk_number;  // position on disk
 	int write; // modification flag, initial value->0
-	int flag; //  memory existence flag ???
+	int flag; //  memory existence flag
 	/*
 	 * flag = 0 is equivelant to physical_number = 0;
 	 * why bother?

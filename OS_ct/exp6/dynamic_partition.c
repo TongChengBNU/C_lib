@@ -15,14 +15,8 @@ int main(int argc, char *argv[])
 {
 	Node *memory_link_list = (Node *)malloc(sizeof(Node));
 	initialization(memory_link_list);
-	printf("%d\n", memory_link_list->next->length);
+//	printf("%d\n", memory_link_list->next->length);
 	interactive_mode(memory_link_list);
-
-
-
-
-
-
 
 	return 0;
 }
