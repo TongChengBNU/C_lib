@@ -1,2 +1,3 @@
 https://blog.csdn.net/akiyame/article/details/41521149
 https://blog.csdn.net/sunny1996/article/details/61615833
+gcc -o a.out ip3.c -lpcap

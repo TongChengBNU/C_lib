@@ -155,18 +155,33 @@ extern int user_id;
 
 extern char disk[(DINODEBLK+FILEBLK+2)*BLOCKSIZ];
 
+// -----------------------------------------------
+// FUNCTION PREDEFINE
+//
+// defined in igetput.c
+// get info about inode with id
 extern struct inode *iget();
+// free inode info ???
 extern void iput();
+
 // defined in ballfre.c 
 // disk block allocation
 extern unsigned int balloc();
-// defined in ballfre.c 
 // disk block free
 extern void bfree();
+
+// defined in iallfre.c
+// allocate index node area
 extern struct inode *ialloc();
+// free index node area
 extern void ifree();
+
+// defined in name.c
+// search  directories
 extern unsigned int namei();
+// search files under current directory
 extern unsigned short iname();
+
 // defined in access.c
 // access control
 extern unsigned int access();
@@ -179,14 +194,28 @@ extern void mkdir();
 // change directory
 extern void chdir();
 
+// defined in open.c
+// open file
 extern unsigned short open();
+
 // defined in create.c
 // create file
 extern unsigned short create();
+
+// defined in rdwt.c
+// read file
 extern unsigned int read();
+// write file
 extern unsigned int write();
+
+// defined in log.c
+// log into filesystem
 extern int login();
+// log out filesystem
 extern void logout();
+
+// defined in install.c
+// enter into filesystem
 extern void install();
 
 // defined in format.c
@@ -198,6 +227,8 @@ extern void memcpy();
 // defined in close.c
 // close file
 extern void close();
+// defined in halt.c
+// exit the whole file system
 extern void halt();
 // defined in delete.c
 // delete file

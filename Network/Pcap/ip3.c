@@ -155,8 +155,8 @@ int main()
 
 	// pcap_findalldevs()函数获取已连接的网络适配器列表
 	// int pcap_findalldevs(pcap_if_t **alldevsp, char *errbuf)
-	// *alldevsp:指向网卡链表头一个节点的指针
-	// *errbuf:错误信息
+	// *alldevsp: 指向网卡链表头一个节点的指针
+	// *errbuf: 错误信息
 	retval = pcap_findalldevs(&alldev, errbuf);
 	if (retval == -1)
 	{
@@ -183,12 +183,14 @@ int main()
 	printf("choose one interface number:");
 	scanf("%d", &inum);
 
-	printf("\n\nxmzxmz:%s\n\n", inet_ntoa(((struct sockaddr_in *)(alldev->addresses->addr))->sin_addr));
-	printf("\n\nxmzxmz:%s\n\n", alldev->name);
+	printf("\n\nFirst device address:%s\n\n", inet_ntoa(((struct sockaddr_in *)(alldev->addresses->addr))->sin_addr));
+	printf("\n\nFirst device name:%s\n\n", alldev->name);
+	// move ptr 'd' to our 'inum'-th device
 	for (d = alldev, i = 0; i < inum ; d = d->next, i++);
+	// delete info in 'errbuf'
 	memset(errbuf, 0, sizeof(errbuf));
 
-	// pcap_open_live()打开网络设备
+	// pcap_open_live(): open network device 
 	// pcap_t *pcap_open_live(
 	//		char *device,  // device name
 	//		int snaplen,   // length of packet, MAX 65535
@@ -200,12 +202,53 @@ int main()
 	if (fp == NULL)
 	{
 		printf("open failed\n");
+		exit(1);
 	}	
-	pcap_lookupnet(d->name, &net_ip, &net_mask, errbuf);
+
+	// pcap_lookupnet: return  is used to determine the network number and mask associated with the network device device. Both netp and maskp are bpf_u_int32 pointers. A return of -1 indicates an error in which case errbuf is filled in with an appropriate error message.
+	// int pcap_lookupnet(
+	//    const char * 	device,
+	//    bpf_u_int32 * netp,
+	//    bpf_u_int32 * maskp,
+	//    char * errbuf
+	// )
+	if( (pcap_lookupnet(d->name, &net_ip, &net_mask, errbuf)) == -1)
+	{ 
+		fprintf(stderr, "pcap_lookupnet error;\n");
+		exit(1);
+	}
+	// pcap_compile: pcap_compile() is used to compile the string str into a filter program. program is a pointer to a bpf_program struct and is filled in by pcap_compile(). 
+	// int pcap_compile	(
+	//   pcap_t * p,
+	//   struct bpf_program * fp,
+	//   char * str,
+	//   int optimize,
+	//   bpf_u_int32 netmask	 
+	// )	
 	pcap_compile(fp, &bpf_filter, bpf_filter_string, 0, net_mask);   
+ 	// pcap_setfilter: Associate a filter to a capture.
+	// int pcap_setfilter(pcap_t *p, struct bpf_program *fp)
 	pcap_setfilter(fp, &bpf_filter);
+
+	// pcap_dispatch: pcap_dispatch() is used to collect and process packets. cnt specifies the maximum number of packets to process before returning. This is not a minimum number; Return the number of read packets
+	// int pcap_dispatch(
+	//  pcap_t * p,
+	//  int cnt,
+	//  pcap_handler callback,
+	//  u_char * user
+	// )
+	// retval = pcap_dispatch(fp, 10, ethernet_protocol_packet_callback, user);
+
+	// pcap_loop: 
+	// int pcap_loop(	
+	//    pcap_t * p,
+	//    int cnt,
+	//    pcap_handler callback,
+	//    u_char * user	 
+	// )	
 	retval = pcap_loop(fp, 10, ethernet_protocol_packet_callback, user);
-	//printf("%d\n", retval);
+	printf("\n\nThe total number of packets being processed: %d\n", retval);
 	return 0;
+
 }
 

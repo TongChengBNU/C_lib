@@ -71,6 +71,5 @@ install()
 	disk+DATASTART+BLOCKSIZ*cur_path_inode->di_addr[i], DINODESIZ);
 
 	return;
-	
 }
 

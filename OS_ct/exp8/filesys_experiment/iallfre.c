@@ -64,9 +64,28 @@ struct inode * ialloc()
 	return temp_inode;
 } 
 
-
+/*
 ifree(dinodeid)
 unsigned int dinodeid;   //xiao
+{
+	filsys.s_ninode ++;
+	if (filsys.s_pinode != NICINOD)         //not null
+	{
+		filsys.s_inode[filsys.s_pinode] = dinodeid;
+		filsys.s_pinode++;
+	}
+	else   //full
+	{
+		if (dinodeid < filsys.s_rinode)
+		{
+			filsys.s_inode[NICINOD] = dinodeid;
+			filsys.s_rinode = dinodeid;
+		}
+	}
+}
+ */
+
+void ifree(unsigned int dinodeid)
 {
 	filsys.s_ninode ++;
 	if (filsys.s_pinode != NICINOD)         /*not null*/
@@ -83,7 +102,6 @@ unsigned int dinodeid;   //xiao
 		}
 	}
 }
-
 
 
 
