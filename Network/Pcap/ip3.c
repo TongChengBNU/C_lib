@@ -198,6 +198,7 @@ int main()
 	//      int to_ms,     // time slot
 	//      char *ebuf     // error buffer
 	// )
+	// P.S.: this function must be called under root.
 	fp = pcap_open_live(d->name, 65535, 1, 1000, errbuf);
 	if (fp == NULL)
 	{
