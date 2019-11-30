@@ -7,6 +7,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
 
 int main(int argc, int *argv[])
 {
@@ -16,6 +17,10 @@ int main(int argc, int *argv[])
 	ptr = ptr+1;
 	printf("%x\n", *ptr);
 	printf("%d\n", *ptr);
+
+	time_t now;
+	now = time(NULL);
+	printf("%s\n", ctime(&now));
 
 
 	return 0;

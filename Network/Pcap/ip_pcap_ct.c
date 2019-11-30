@@ -1,188 +1,9 @@
 
+
 #include <stdio.h>
 #include <stdlib.h>
-#include <pcap.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <string.h>
+#include "pcap_ct.h"
 
-#define MAX_PRINT 80
-#define MAX_LINE 16
- 
-struct tcp_header
-{
-	u_int16_t src_port;  // source port
-	u_int16_t dst_port;  // destination port
-	unsigned int seq_num; // sequence number
-	unsigned int ack_num; // acknowledge number
-	u_int8_t hdrLen; // 4 bit header length  4 bit null
-	u_int8_t flags;  // 8 bit independent flags
-	u_int16_t window; // size of window
-	u_int16_t cksum;  // check sum
-	u_int16_t urgent_ptr; // urgent pointer
-	//unsigned int options;
-	char content[1024];
-};
-
-struct ip_header
-{
-	#if defined(WORDS_BIENDIAN)   
-	u_int8_t   ip_version : 4,
-	ip_header_length : 4;
-	#else   
-	// split the 8 bits into 2*4 bits
-	u_int8_t   ip_header_length : 4,
-	ip_version : 4;
-	#endif   
-	u_int8_t    ip_tos; // type of service 6+2
-	u_int16_t   ip_length; // total length 16
-	u_int16_t   ip_id; // identification 16
-	u_int16_t   ip_off; // offset 1+1+1+13
-	u_int8_t    ip_ttl; // time to live 8
-	u_int8_t    ip_protocol; // protocol 8
-	u_int16_t   ip_checksum; // header checksum 16
-	struct in_addr ip_source_address; // 32
-	struct in_addr ip_destination_address; // 32
-
-	char content[1024];
-};
- 
-struct ether_header
-{
-	u_int8_t ether_dhost[6]; //目的Mac地址  dst MAC
-	u_int8_t ether_shost[6]; //源Mac地址    src MAC 
-	u_int16_t ether_type;    //协议类型     protocol type
-};
- 
-void ip_protocol_packet_callback(u_char*, const struct pcap_pkthdr*, const u_char*);
-void tcp_protocol_packet_callback(u_char*, const struct pcap_pkthdr*, const u_char*);
- 
-/* Definition of 'pcap_pkthdr'
- struct pcap_pkthdr{
-    struct timeval ts;                  //捕获数据包的时间
-    bpf_u_int32   caplen;        //捕获的长度
-    bpf_u_int32   len;                //数据包长度  
- }
- */
-void ethernet_protocol_packet_callback(u_char *argument, const struct pcap_pkthdr* packet_header, const u_char* packet_content)
-{
-	u_short ethernet_type;
-	struct ether_header *ethernet_protocol;
-	u_char *mac_string;
-	static int packet_number = 1;
-	printf("----------------------------------------------\n");
-	printf("捕获第%d个网络数据包\n", packet_number);
-	printf("数据包长度(Length of packet):\n");
-	printf("%d\n", packet_header->len);
-	printf("---------以太网协议(Protocol of Ethernet)---------\n");
-	ethernet_protocol = (struct ether_header*)packet_content;//获得数据包内容   
-	printf("以太网类型(Type of Ethernet):\n");
-	// network to host endian short(16 bits)
-	ethernet_type = ntohs(ethernet_protocol->ether_type);//获得以太网类型   
-	printf("%04x\n", ethernet_type);
-	switch (ethernet_type)
-	{
-		case 0x0800: printf("上层协议是IP协议\n"); break;
-		case 0x0806: printf("上层协议是ARP协议\n"); break;
-		case 0x8035: printf("上层协议是RARP协议\n"); break;
-		default:break;
-	}
-	printf("MAC帧源地址:\n");
-	mac_string = ethernet_protocol->ether_shost;
-	printf("%02x:%02x:%02x:%02x:%02x:%02x\n", *mac_string, *(mac_string + 1), *(mac_string + 2), *(mac_string + 3), *(mac_string + 4), *(mac_string + 5));
-	printf("MAC帧目的地址:\n");
-	mac_string = ethernet_protocol->ether_dhost;
-	printf("%02x:%02x:%02x:%02x:%02x:%02x\n", *mac_string, *(mac_string + 1), *(mac_string + 2), *(mac_string + 3), *(mac_string + 4), *(mac_string + 5));
-	if (ethernet_type == 0x0800)//继续分析IP协议   
-	{
-		ip_protocol_packet_callback(argument, packet_header, packet_content);
-	}
-	printf("----------------------------------------------\n");
-	packet_number++;
-}
- 
- 
-void ip_protocol_packet_callback(u_char *argument, const struct pcap_pkthdr* packet_header, const u_char* packet_content)
-{
-	struct ip_header *ip_protocol;
-	u_int header_length;
-	u_int offset;
-	u_char tos;
-	u_int16_t checksum;
-	//MAC首部是14位的，加上14位得到IP协议首部   
-	ip_protocol = (struct ip_header *) (packet_content + 14);
-	// checksum: 16 bits = 2 bytes, that is why use network to host short
-	checksum = ntohs(ip_protocol->ip_checksum);
-	tos = ip_protocol->ip_tos;
-	// should we consider the special 3 bits before offset?????????
-	offset = ntohs(ip_protocol->ip_off);
-	printf("---------IP协议---------\n");
-	printf("版本号:%d\n", ip_protocol->ip_version);
-	printf("首部长度:%d\n", ip_protocol->ip_header_length);
-	printf("服务质量:%d\n", tos);
-	printf("总长度:%d\n", ntohs(ip_protocol->ip_length));
-	printf("标识:%d\n", ntohs(ip_protocol->ip_id));
-	printf("偏移:%d\n", (offset & 0x1fff) * 8);
-	printf("生存时间:%d\n", ip_protocol->ip_ttl);
-	printf("协议类型:%d\n", ip_protocol->ip_protocol);
-	switch (ip_protocol->ip_protocol)
-	{
-	case 1: printf("上层协议是ICMP协议\n"); break;
-	case 2: printf("上层协议是IGMP协议\n"); break;
-	case 6: printf("上层协议是TCP协议\n"); break;
-	case 17: printf("上层协议是UDP协议\n"); break;
-	default:break;
-	}
-	printf("检验和:%d\n", checksum);
-	printf("源IP地址:%s\n", inet_ntoa(ip_protocol->ip_source_address));
-	printf("目的地址:%s\n", inet_ntoa(ip_protocol->ip_destination_address));
-	//printf("Content:%s\n", ip_protocol->content);
-	if(ip_protocol->ip_protocol == 6)
-	{
-		// continue to analyze TCP datagram
-		tcp_protocol_packet_callback(argument, packet_header, packet_content);
-	}
-}
- 
-void tcp_protocol_packet_callback(u_char*, const struct pcap_pkthdr*, const u_char* pcap_content)
-{
-	struct tcp_header *tcp_protocol;	
-	// what is the offset??
-	// ipv4 head 4*5=20
-	tcp_protocol = (struct tcp_header *)(pcap_content + 20);
-	u_int16_t checksum = ntohs(tcp_protocol->cksum);
-	u_int16_t src_port = ntohs(tcp_protocol->src_port);
-	u_int16_t dst_port = ntohs(tcp_protocol->dst_port);
-	
-	printf("---------IP协议---------\n");
-	printf("Source port: %d\n", src_port);
-	printf("Destination port: %d\n", dst_port);
-	printf("Check sum: %d\n", checksum);
-	printf("Content: %s\n", inet_ntoa(tcp_protocol->content));
-	return;
-}
-
-/* typedef pcap_if pcap_if_t;
- * struct pcap_if{
- *	   struct pcap_if *next;   // next network interface device
- *     char *name;             // device name
- *     char *description;      // device description
- *     struct pcap_addr *addresses; // device address
- *     bpf_u_int32 flags;           // device flag
- * }
- *
- * struct pcap_addr{
- *     struct pcap_addr *next, 
- *     struct sockaddr *addr,
- *     struct sockaddr *netmask,
- *     struct sockaddr *broadaddr,
- *     struct sockaddr *dstaddr
- * }
- *
- * typedef pcap pcap_t;
- * pcap was defined in pcap.h and kind of complicated;
- * */
  
 int main()
 {
@@ -316,6 +137,157 @@ int main()
 	pcap_freealldevs(alldev);
 	retval = pcap_loop(fp, 0, ethernet_protocol_packet_callback, user);
 	return 0;
-
 }
 
+void show_curTime()
+{
+	time_t now;
+	now = time(NULL);
+	printf("Current time: %s", ctime(&now));
+}
+
+void ethernet_protocol_packet_callback(u_char *argument, const struct pcap_pkthdr* packet_header, const u_char* packet_content)
+{
+	u_short ethernet_type;
+	struct ether_header *ethernet_protocol;
+	u_char *mac_string;
+	static int packet_number = 1;
+	char *cksum_ptr;
+
+	printf("----------------------------------------------\n");
+	printf("-- No.%d packet\n", packet_number);
+	printf("Length of packet: %d\n", packet_header->len);
+	printf("Arrival time: %s", ctime(&packet_header->ts.tv_sec));
+	show_curTime();
+	putchar('\n');
+
+	printf("---------Protocol of Ethernet---------\n");
+	ethernet_protocol = (struct ether_header*)packet_content;   
+	// dst mac
+	printf("MAC destination address:\n");
+	mac_string = ethernet_protocol->ether_dhost;
+	printf("%02x:%02x:%02x:%02x:%02x:%02x\n", *mac_string, *(mac_string + 1), *(mac_string + 2), *(mac_string + 3), *(mac_string + 4), *(mac_string + 5));
+	// src mac
+	printf("MAC source address:\n");
+	mac_string = ethernet_protocol->ether_shost;
+	printf("%02x:%02x:%02x:%02x:%02x:%02x\n", *mac_string, *(mac_string + 1), *(mac_string + 2), *(mac_string + 3), *(mac_string + 4), *(mac_string + 5));
+	// type 
+	ethernet_type = ntohs(ethernet_protocol->ether_type);   
+	printf("Type of Ethernet: %04x ", ethernet_type);
+	switch (ethernet_type)
+	{
+		case 0x0800: printf("IP Protocol\n"); break;
+		case 0x0806: printf("ARP Protocol\n"); break;
+		case 0x8035: printf("RARP Protocol\n"); break;
+		default:break;
+	}
+
+	// check sum
+	printf("Check sum of frame:\n");
+	cksum_ptr = (char *)(packet_content + (packet_header->len-4));
+	for(int i=0;i<4;i++)
+	{
+		printf("%x ", *(cksum_ptr++));
+	}
+	putchar('\n');
+
+	if (ethernet_type == 0x0800)  
+	{
+		// continue to analyze IP Protocol
+		ip_protocol_packet_callback(argument, packet_header, packet_content);
+	}
+	printf("----------------------------------------------\n\n\n\n");
+	packet_number++;
+}
+ 
+void ip_protocol_packet_callback(u_char *argument, const struct pcap_pkthdr* packet_header, const u_char* packet_content)
+{
+	struct ip_header *ip_protocol;
+	u_int header_length;
+	u_int offset;
+	u_char tos;
+	u_int16_t checksum;
+	// frame of Ethernet: (8) + 6 + 6 + 2   
+	// preamable + dst mac + src mac + type + data
+	ip_protocol = (struct ip_header *) (packet_content + 14);
+	// checksum: 16 bits = 2 bytes, that is why use network to host short
+	checksum = ntohs(ip_protocol->ip_checksum);
+	tos = ip_protocol->ip_tos;
+	// should we consider the special 3 bits before offset?????????
+	offset = ntohs(ip_protocol->ip_off);
+	printf("---------IP Protocol---------\n");
+	printf("Version:%d\n", ip_protocol->ip_version);
+	printf("Header length:%d\n", ip_protocol->ip_header_length);
+	printf("QoS:%d\n", tos);
+	printf("Total length:%d\n", ntohs(ip_protocol->ip_length));
+	printf("Identifier:%d\n", ntohs(ip_protocol->ip_id));
+	printf("Offset:%d\n", (offset & 0x1fff) * 8);
+	printf("TTL:%d\n", ip_protocol->ip_ttl);
+	printf("Protocol Type:%d ", ip_protocol->ip_protocol);
+	switch (ip_protocol->ip_protocol)
+	{
+		case 1: printf("ICMP Protocol\n"); break;
+		case 2: printf("IGMP Protocol\n"); break;
+		case 6: printf("TCP Protocol\n"); break;
+		case 17: printf("UDP Protocol\n"); break;
+		default:break;
+	}
+	printf("Check sum:%d\n", checksum);
+	printf("Source IP address:%s\n", inet_ntoa(ip_protocol->ip_source_address));
+	printf("Destination IP address:%s\n", inet_ntoa(ip_protocol->ip_destination_address));
+	//printf("Content:%s\n", ip_protocol->content);
+	if(ip_protocol->ip_protocol == 6)
+	{
+		// continue to analyze TCP datagram
+		tcp_protocol_packet_callback(argument, packet_header, packet_content);
+	}
+	else if(ip_protocol->ip_protocol == 17)
+	{
+		// continue to analyze UDP datagram
+		udp_protocol_packet_callback(argument, packet_header, packet_content);
+	}
+}
+ 
+void tcp_protocol_packet_callback(u_char *argument, const struct pcap_pkthdr *pcap_header, const u_char* pcap_content)
+{
+	struct tcp_header *tcp_protocol;	
+	// ipv4 head 4*5=20
+	tcp_protocol = (struct tcp_header *)(pcap_content + 20);
+	u_int16_t checksum = ntohs(tcp_protocol->cksum);
+	u_int16_t src_port = ntohs(tcp_protocol->src_port);
+	u_int16_t dst_port = ntohs(tcp_protocol->dst_port);
+	
+	printf("---------TCP Protocol---------\n");
+	printf("Source port: %d\n", src_port);
+	printf("Destination port: %d\n", dst_port);
+	printf("Check sum: %d\n", checksum);
+	printf("Content: %s\n", tcp_protocol->content+26);
+	return;
+}
+
+void udp_protocol_packet_callback(u_char *argument, const struct pcap_pkthdr *pcap_header, const u_char* pcap_content)
+{
+	struct udp_header *udp_protocol;	
+	// ipv4 head 4*2=8
+	udp_protocol = (struct udp_header *)(pcap_content + 8);
+	u_int16_t udp_length = ntohs(udp_protocol->udp_length);
+	u_int16_t checksum = ntohs(udp_protocol->cksum);
+	u_int16_t src_port = ntohs(udp_protocol->src_port);
+	u_int16_t dst_port = ntohs(udp_protocol->dst_port);
+	
+	printf("---------UDP Protocol---------\n");
+	printf("Source port: %d\n", src_port);
+	printf("Destination port: %d\n", dst_port);
+	printf("Length of UDP: %d\n", udp_length);
+	printf("Check sum: %d\n", checksum);
+
+	//int option=40;
+	//for(int i=0;i<option;i++)
+	//{
+	//	printf("Content %d: %x\n", i,udp_protocol->content[i]);
+	//}
+	// after testing, the offset should be 26
+	printf("Content: %s\n", udp_protocol->content+26);
+
+	return;
+}
