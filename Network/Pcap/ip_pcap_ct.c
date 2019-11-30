@@ -12,15 +12,16 @@
  
 struct tcp_header
 {
-	u_int16_t src_port;
-	u_int16_t dst_port;
-	unsigned int seq_num;
-	unsigned int ack_num;
-	u_int16_t hdrLen_flags;
-	u_int16_t window;
-	u_int16_t cksum;
-	u_int16_t urgent_ptr;
-	unsigned int options;
+	u_int16_t src_port;  // source port
+	u_int16_t dst_port;  // destination port
+	unsigned int seq_num; // sequence number
+	unsigned int ack_num; // acknowledge number
+	u_int8_t hdrLen; // 4 bit header length  4 bit null
+	u_int8_t flags;  // 8 bit independent flags
+	u_int16_t window; // size of window
+	u_int16_t cksum;  // check sum
+	u_int16_t urgent_ptr; // urgent pointer
+	//unsigned int options;
 	char content[1024];
 };
 
@@ -148,7 +149,18 @@ void tcp_protocol_packet_callback(u_char*, const struct pcap_pkthdr*, const u_ch
 {
 	struct tcp_header *tcp_protocol;	
 	// what is the offset??
-	tcp_protocol = (struct tcp_header *)(pcap_content + ??);
+	// ipv4 head 4*5=20
+	tcp_protocol = (struct tcp_header *)(pcap_content + 20);
+	u_int16_t checksum = ntohs(tcp_protocol->cksum);
+	u_int16_t src_port = ntohs(tcp_protocol->src_port);
+	u_int16_t dst_port = ntohs(tcp_protocol->dst_port);
+	
+	printf("---------IP协议---------\n");
+	printf("Source port: %d\n", src_port);
+	printf("Destination port: %d\n", dst_port);
+	printf("Check sum: %d\n", checksum);
+	printf("Content: %s\n", inet_ntoa(tcp_protocol->content));
+	return;
 }
 
 /* typedef pcap_if pcap_if_t;
