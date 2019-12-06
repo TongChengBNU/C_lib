@@ -4,9 +4,17 @@
 #include <stdlib.h>
 #include "pcap_ct.h"
 
+// crc32 reverse table
+//extern alt_u32 Table1[256];
+int tcp_udp_data_offset=0;
+
  
 int main()
 {
+	//生成翻转表，是官方推荐的，故称其为normal_table
+	//gen_normal_table(Table1);
+
+
 	pcap_t *fp;
 	// *alldev: ptr of link list of struct pcap_if_t
 	// *d: moving ptr or tmp ptr;
@@ -26,6 +34,7 @@ int main()
 	struct bpf_program bpf_filter; //BPF过滤规则   
 	//char bpf_filter_string[] = "ip";
 	char bpf_filter_string[] = "src or dst net 172.81";
+	//char bpf_filter_string[] = "src or dst net 172.81 and port 8080";
 
 	// pcap_findalldevs()函数获取已连接的网络适配器列表
 	// int pcap_findalldevs(pcap_if_t **alldevsp, char *errbuf)
@@ -182,14 +191,20 @@ void ethernet_protocol_packet_callback(u_char *argument, const struct pcap_pkthd
 		default:break;
 	}
 
-	// check sum
-	printf("Check sum of frame:\n");
-	cksum_ptr = (char *)(packet_content + (packet_header->len-4));
-	for(int i=0;i<4;i++)
-	{
-		printf("%x ", *(cksum_ptr++));
-	}
-	putchar('\n');
+	// check sum, packet_content in pcap does not contain preamable and crc
+	//printf("Check sum of frame:\n");
+	//cksum_ptr = (char *)(packet_content + (packet_header->len-4));
+	//for(int i=0;i<4;i++)
+	//{
+	//	printf("%x ", *(cksum_ptr++));
+	//}
+	//putchar('\n');
+	//alt_u8 *crc_content_ptr = (alt_u8 *)packet_content;
+	//alt_u8 *crc_stop_ptr = (alt_u8 *)(packet_content + (packet_header->len-4));
+	////使用翻转表，官方推荐的，很快
+	//printf("Reverse Table  ref + xor : %08x\n",Reverse_Table_CRC(crc_content_ptr, packet_header->len-4, Table1));
+
+
 
 	if (ethernet_type == 0x0800)  
 	{
@@ -218,7 +233,7 @@ void ip_protocol_packet_callback(u_char *argument, const struct pcap_pkthdr* pac
 	printf("---------IP Protocol---------\n");
 	printf("Version:%d\n", ip_protocol->ip_version);
 	printf("Header length:%d\n", ip_protocol->ip_header_length);
-	printf("QoS:%d\n", tos);
+	printf("Type of Service:%d\n", tos);
 	printf("Total length:%d\n", ntohs(ip_protocol->ip_length));
 	printf("Identifier:%d\n", ntohs(ip_protocol->ip_id));
 	printf("Offset:%d\n", (offset & 0x1fff) * 8);
@@ -239,12 +254,12 @@ void ip_protocol_packet_callback(u_char *argument, const struct pcap_pkthdr* pac
 	if(ip_protocol->ip_protocol == 6)
 	{
 		// continue to analyze TCP datagram
-		tcp_protocol_packet_callback(argument, packet_header, packet_content);
+		tcp_protocol_packet_callback(argument, packet_header, packet_content+14);
 	}
 	else if(ip_protocol->ip_protocol == 17)
 	{
 		// continue to analyze UDP datagram
-		udp_protocol_packet_callback(argument, packet_header, packet_content);
+		udp_protocol_packet_callback(argument, packet_header, packet_content+14);
 	}
 }
  
@@ -256,12 +271,16 @@ void tcp_protocol_packet_callback(u_char *argument, const struct pcap_pkthdr *pc
 	u_int16_t checksum = ntohs(tcp_protocol->cksum);
 	u_int16_t src_port = ntohs(tcp_protocol->src_port);
 	u_int16_t dst_port = ntohs(tcp_protocol->dst_port);
+	u_int16_t hdr_offset = ntohs(tcp_protocol->hdrLen);
 	
 	printf("---------TCP Protocol---------\n");
 	printf("Source port: %d\n", src_port);
 	printf("Destination port: %d\n", dst_port);
+	printf("Offset: %x | %d\n", hdr_offset>>12, hdr_offset>>12);
 	printf("Check sum: %d\n", checksum);
-	printf("Content: %s\n", tcp_protocol->content+26);
+	//printf("Content: \n%s\n", tcp_protocol->content+20+tcp_udp_data_offset);
+	//printf("Content: \n%s\n", tcp_protocol->content+2*(hdr_offset>>12));
+	printf("Content: \n%s\n", (pcap_content+20)+4*(hdr_offset>>12));
 	return;
 }
 
@@ -287,7 +306,7 @@ void udp_protocol_packet_callback(u_char *argument, const struct pcap_pkthdr *pc
 	//	printf("Content %d: %x\n", i,udp_protocol->content[i]);
 	//}
 	// after testing, the offset should be 26
-	printf("Content: %s\n", udp_protocol->content+26);
+	printf("Content: \n%s\n", udp_protocol->content+20+tcp_udp_data_offset);
 
 	return;
 }

@@ -20,6 +20,26 @@
 
 // #define ETHER_MAX_DATA_LENGTH 1500
 
+// -----------------------------------
+// crc32 predefined key
+#define alt_8    char
+#define alt_u8   unsigned char
+#define alt_32   int
+#define alt_u32  unsigned int
+#define alt_64   long long
+#define alt_u64  unsigned long long
+//标准的CRC32多项式
+#define poly  0x04C11DB7
+//翻转的CRC32多项式
+#define upoly 0xEDB88320
+
+alt_u64 Reflect(alt_u64 ref,alt_u8 ch);
+alt_u32 crc32_bit(alt_u8 *ptr, alt_u32 len, alt_u32 gx);
+void gen_direct_table(alt_u32 *table);
+void gen_normal_table(alt_u32 *table);
+alt_u32 DIRECT_TABLE_CRC(alt_u8 *ptr,int len, alt_u32 * table);
+alt_u32 Reverse_Table_CRC(alt_u8 *data, alt_32 len, alt_u32 * table);
+// ----------------------------------
 
 struct tcp_header
 {
@@ -27,8 +47,8 @@ struct tcp_header
 	u_int16_t dst_port;  // destination port
 	unsigned int seq_num; // sequence number
 	unsigned int ack_num; // acknowledge number
-	u_int8_t hdrLen; // 4 bit header length  4 bit null
-	u_int8_t flags;  // 8 bit independent flags
+	u_int16_t hdrLen; // 4 bit header length  4 bit null
+	//u_int8_t flags;  // 8 bit independent flags
 	u_int16_t window; // size of window
 	u_int16_t cksum;  // check sum
 	u_int16_t urgent_ptr; // urgent pointer
