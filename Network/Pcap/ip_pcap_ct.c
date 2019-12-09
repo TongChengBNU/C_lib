@@ -209,7 +209,7 @@ void ethernet_protocol_packet_callback(u_char *argument, const struct pcap_pkthd
 	if (ethernet_type == 0x0800)  
 	{
 		// continue to analyze IP Protocol
-		ip_protocol_packet_callback(argument, packet_header, packet_content);
+		ip_protocol_packet_callback(argument, packet_header, packet_content+sizeof(struct ether_header));
 	}
 	printf("----------------------------------------------\n\n\n\n");
 	packet_number++;
@@ -218,25 +218,21 @@ void ethernet_protocol_packet_callback(u_char *argument, const struct pcap_pkthd
 void ip_protocol_packet_callback(u_char *argument, const struct pcap_pkthdr* packet_header, const u_char* packet_content)
 {
 	struct ip_header *ip_protocol;
-	u_int header_length;
-	u_int offset;
-	u_char tos;
 	u_int16_t checksum;
 	// frame of Ethernet: (8) + 6 + 6 + 2   
 	// preamable + dst mac + src mac + type + data
-	ip_protocol = (struct ip_header *) (packet_content + 14);
+	ip_protocol = (struct ip_header *) (packet_content);
 	// checksum: 16 bits = 2 bytes, that is why use network to host short
-	checksum = ntohs(ip_protocol->ip_checksum);
-	tos = ip_protocol->ip_tos;
+	//checksum = ntohs(ip_protocol->ip_checksum);
 	// should we consider the special 3 bits before offset?????????
-	offset = ntohs(ip_protocol->ip_off);
+	//offset = ntohs(ip_protocol->ip_off);
 	printf("---------IP Protocol---------\n");
 	printf("Version:%d\n", ip_protocol->ip_version);
 	printf("Header length:%d\n", ip_protocol->ip_header_length);
-	printf("Type of Service:%d\n", tos);
+	printf("Type of Service:%d\n", ip_protocol->ip_tos);
 	printf("Total length:%d\n", ntohs(ip_protocol->ip_length));
 	printf("Identifier:%d\n", ntohs(ip_protocol->ip_id));
-	printf("Offset:%d\n", (offset & 0x1fff) * 8);
+	printf("Offset:%d\n", (ip_protocol->ip_off & 0x1fff) * 8);
 	printf("TTL:%d\n", ip_protocol->ip_ttl);
 	printf("Protocol Type:%d ", ip_protocol->ip_protocol);
 	switch (ip_protocol->ip_protocol)
@@ -247,27 +243,27 @@ void ip_protocol_packet_callback(u_char *argument, const struct pcap_pkthdr* pac
 		case 17: printf("UDP Protocol\n"); break;
 		default:break;
 	}
-	printf("Check sum:%d\n", checksum);
+	printf("Check sum:%d\n", ip_protocol->ip_checksum);
 	printf("Source IP address:%s\n", inet_ntoa(ip_protocol->ip_source_address));
 	printf("Destination IP address:%s\n", inet_ntoa(ip_protocol->ip_destination_address));
 	//printf("Content:%s\n", ip_protocol->content);
 	if(ip_protocol->ip_protocol == 6)
 	{
 		// continue to analyze TCP datagram
-		tcp_protocol_packet_callback(argument, packet_header, packet_content+14);
+		tcp_protocol_packet_callback(argument, packet_header, packet_content+sizeof(struct ip_header) );
 	}
 	else if(ip_protocol->ip_protocol == 17)
 	{
 		// continue to analyze UDP datagram
-		udp_protocol_packet_callback(argument, packet_header, packet_content+14);
+		udp_protocol_packet_callback(argument, packet_header, packet_content+sizeof(struct ip_header) );
 	}
 }
  
-void tcp_protocol_packet_callback(u_char *argument, const struct pcap_pkthdr *pcap_header, const u_char* pcap_content)
+void tcp_protocol_packet_callback(u_char *argument, const struct pcap_pkthdr *pcap_header, const u_char* packet_content)
 {
 	struct tcp_header *tcp_protocol;	
 	// ipv4 head 4*5=20
-	tcp_protocol = (struct tcp_header *)(pcap_content + 20);
+	tcp_protocol = (struct tcp_header *)(packet_content);
 	u_int16_t checksum = ntohs(tcp_protocol->cksum);
 	u_int16_t src_port = ntohs(tcp_protocol->src_port);
 	u_int16_t dst_port = ntohs(tcp_protocol->dst_port);
@@ -280,15 +276,15 @@ void tcp_protocol_packet_callback(u_char *argument, const struct pcap_pkthdr *pc
 	printf("Check sum: %d\n", checksum);
 	//printf("Content: \n%s\n", tcp_protocol->content+20+tcp_udp_data_offset);
 	//printf("Content: \n%s\n", tcp_protocol->content+2*(hdr_offset>>12));
-	printf("Content: \n%s\n", (pcap_content+20)+4*(hdr_offset>>12));
+	printf("Content: \n%s\n", (packet_content)+4*(hdr_offset>>12));
 	return;
 }
 
-void udp_protocol_packet_callback(u_char *argument, const struct pcap_pkthdr *pcap_header, const u_char* pcap_content)
+void udp_protocol_packet_callback(u_char *argument, const struct pcap_pkthdr *pcap_header, const u_char* packet_content)
 {
 	struct udp_header *udp_protocol;	
 	// ipv4 head 4*2=8
-	udp_protocol = (struct udp_header *)(pcap_content + 8);
+	udp_protocol = (struct udp_header *)(packet_content);
 	u_int16_t udp_length = ntohs(udp_protocol->udp_length);
 	u_int16_t checksum = ntohs(udp_protocol->cksum);
 	u_int16_t src_port = ntohs(udp_protocol->src_port);
@@ -306,7 +302,7 @@ void udp_protocol_packet_callback(u_char *argument, const struct pcap_pkthdr *pc
 	//	printf("Content %d: %x\n", i,udp_protocol->content[i]);
 	//}
 	// after testing, the offset should be 26
-	printf("Content: \n%s\n", udp_protocol->content+20+tcp_udp_data_offset);
+	printf("Content: \n%s\n", packet_content+sizeof(struct udp_header));
 
 	return;
 }

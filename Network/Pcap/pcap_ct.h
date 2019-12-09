@@ -53,7 +53,6 @@ struct tcp_header
 	u_int16_t cksum;  // check sum
 	u_int16_t urgent_ptr; // urgent pointer
 	//unsigned int options;
-	char content[1024];
 };
 
 struct udp_header
@@ -62,10 +61,9 @@ struct udp_header
 	u_int16_t dst_port;
 	u_int16_t udp_length;
 	u_int16_t cksum;
-	char content[1024];	
 };
 
-
+// Size: 20
 struct ip_header
 {
 	#if defined(WORDS_BIENDIAN)   
@@ -85,12 +83,15 @@ struct ip_header
 	u_int16_t   ip_checksum; // header checksum 16
 	struct in_addr ip_source_address; // 32
 	struct in_addr ip_destination_address; // 32
-	unsigned int options_pad;
+	//unsigned int options_pad;
 };
 
+
+// Size: 14
 struct ether_header
 {
-	// why no preamable????????
+	// why no preamable ?
+	// because the frame received by program does not contain preamable and CRC
 	u_int8_t ether_dhost[6]; //目的Mac地址  dst MAC 6 byte
 	u_int8_t ether_shost[6]; //源Mac地址    src MAC 6 byte
 	u_int16_t ether_type;    //协议类型     protocol type
@@ -146,36 +147,6 @@ void show_curTime();
  *       06                   TCP
  *       17                   UDP
  * */
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 #endif
