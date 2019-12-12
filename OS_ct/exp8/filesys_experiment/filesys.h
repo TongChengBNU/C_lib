@@ -1,29 +1,44 @@
-#define BLOCKSIZ        512
+// block size
+#define BLOCKSIZ 512
+// system open file number
 #define SYSOPENFILE  40
 #define DIRNUM 128
+// directory name maximum length
 #define DIRSIZ 12    //xiao 14->12
+// password maximum length
 #define PWDSIZ 12
+// password number
 #define PWDNUM 32
 #define NOFILE   20
+// number of address
 #define NADDR  10
+// number of hash inode
 #define NHINO 128       /* must be power of 2 */
 #define USERNUM 10
+// disk inode size
 #define DINODESIZ 52   //xiao 32->52
 
 
 /*filesys*/
 #define DINODEBLK  32
+// file block
 #define FILEBLK   512
 #define NICFREE  50 
 #define NICINOD  50
+// disk inode start
 #define DINODESTART  (2*BLOCKSIZ)    /*1024   0x400*/
 #define DATASTART  ((2+DINODEBLK)*BLOCKSIZ)     /*d:17408    0x4400*/
 
 
 /*di_mode*/
+// disk empty
 #define DIEMPTY   00000
+// disk file
 #define DIFILE      01000
+// disk directory
 #define DIDIR     02000
+// default mode
+#define DEFAULTMODE 00777
 
 #define UDIREAD 00001          /* USER */
 #define UDIWRITE  00002
@@ -41,7 +56,6 @@
 #define EXICUTE 3
 
 
-#define DEFAULTMODE 00777
 
 
 /* i_flag */
@@ -63,17 +77,17 @@
 
 // index node
 struct inode{
-	struct inode  *i_forw;
-	struct inode  *i_back;
-	char i_flag;
-	unsigned int  i_ino;          /*磁盘i 节点标志*/
-	unsigned int  i_count;     /*引用计数*/
-	unsigned short  di_number; /*关联文件数。当为0 时，则删除该文件*/
-	unsigned short  di_mode;  /*存取权限*/
-	unsigned short  di_uid;   //ct: disk index node user id
-	unsigned short  di_gid;   //ct: disk index node group id
-	unsigned short  di_size;   /*文件大小*/
-	unsigned int   di_addr[NADDR];   /*物理块号*/
+	struct inode  *i_forw;    // inode forward
+	struct inode  *i_back;    // inode backward
+	char i_flag;             // flag for not update
+	unsigned int  i_ino;     // disk inode flag     /* 磁盘 i 节点标志*/
+	unsigned int  i_count;   // ref count   /*引用计数*/
+	unsigned short  di_number; // ref file count /*关联文件数。当为0 时，则删除该文件*/
+	unsigned short  di_mode;  // read/write authority?? should be type? /*存取权限*/
+	unsigned short  di_uid;   // disk index node user id
+	unsigned short  di_gid;   // disk index node group id
+	unsigned short  di_size;  // size of file /*文件大小*/
+	unsigned int   di_addr[NADDR];   // number of physical number /*物理块号*/
 };
 
 // disk index node
@@ -88,8 +102,8 @@ struct dinode{
 
 // directory entry
 struct direct{
-	char d_name[DIRSIZ];  //ct: directory name
-	unsigned int d_ino;   //ct: directory number
+	char d_name[DIRSIZ];  // directory name
+	unsigned int d_ino;   // directory number
 };
 
 // file system super block
@@ -109,10 +123,11 @@ struct filsys{
 };
 
 // password
+// struct pwd corresponds to ?????
 struct pwd{
-	unsigned short p_uid;
-	unsigned short p_gid;
-	char password [PWDSIZ];
+	unsigned short p_uid; // user id
+	unsigned short p_gid; // group id
+	char password [PWDSIZ]; // password
 };
 
 // directory : what's the difference between dir and direct?
@@ -126,7 +141,7 @@ struct hinode{
 	struct inode *i_forw;   /*HASG表指针*/
 };
 
-// system open table
+// system open table element
 struct file{
 	char f_flag;    /*文件操作标志*/
 	unsigned int f_count;  /*引用计数*/

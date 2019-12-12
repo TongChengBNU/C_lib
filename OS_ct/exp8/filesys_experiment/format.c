@@ -4,7 +4,11 @@
 void format()
 {
 	struct inode *inode;
-	struct direct dir_buf[BLOCKSIZ/(DIRSIZ+4)];
+	// every block could contain BlOCKSIZ/(sizeof(struct direct)) struct direct;
+	// ------------ DIRSIZ+4 is so arcane -.-!
+	// struct direct dir_buf[BLOCKSIZ/(DIRSIZ+4)];
+	struct direct dir_buf[BlOCKSIZ/(sizeof(struct direct))];
+
 	//struct pwd passwd[BLOCKSIZ/(PWDSIZ+4)];
 	struct pwd passwd[32];
 	/*
@@ -22,9 +26,14 @@ void format()
 	char *buf;
 	int i,j;
 
+	// disk is a global variable declared in main.c
+	// there are (DINODEBLK+FILEBLK+2) disk block
+	// Preparation: initialize the memory to 0x00
 	memset(disk, 0x00, ((DINODEBLK+FILEBLK+2)*BLOCKSIZ));
 
+
 	/* 0.initialize the passwd */
+	// 5 users in total
 	passwd[0].p_uid = 2116;
 	passwd[0].p_gid = 03;
 	strcpy(passwd[0].password, "dddd");
@@ -45,6 +54,7 @@ void format()
 	passwd[4].p_gid = 05;
 	strcpy(passwd[4].password, "eeee");
 
+
 	/* 1.creat the main directory and its sub dir etc and the file password */
 
 	inode = iget(0);   /* 0 empty dinode id*/
@@ -53,13 +63,14 @@ void format()
 
 	inode = iget(1);   /* 1 main dir id*/
 	inode->di_number = 1;
+	// ?????????????
 	inode->di_mode = DEFAULTMODE | DIDIR;
 	inode->di_size = 3*(DIRSIZ + 4);
 	inode->di_addr[0] = 0; /*block 0# is used by the main directory*/
 	
-	strcpy(dir_buf[0].d_name,"..");
+	strcpy(dir_buf[0].d_name, "..");
 	dir_buf[0].d_ino = 1;
-	strcpy(dir_buf[1].d_name,".");
+	strcpy(dir_buf[1].d_name, ".");
 	dir_buf[1].d_ino = 1;
 	strcpy(dir_buf[2].d_name,"etc");
 	dir_buf[2].d_ino = 2;
@@ -99,6 +110,7 @@ void format()
 	inode->di_size = BLOCKSIZ;
 	inode->di_addr[0] = 2; /*block 2# is used by the password file*/
 
+	// Besides first 5 pwds, set others to Null
 	for (i=5; i<PWDNUM; i++)
 	{
 		passwd[i].p_uid = 0;
@@ -106,6 +118,7 @@ void format()
 		strcpy(passwd[i].password, "            ");  // PWDSIZ " "
 	}
 }	
+
 
 //added by xiao for a while
 // why add this memcpy??

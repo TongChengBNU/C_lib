@@ -1,32 +1,36 @@
 #include <stdio.h>
 #include "filesys.h"
 
+// generate inode
+// input: disk inode id
 struct inode * iget(dinodeid)
 unsigned int dinodeid;
 {
 	int existed = 0, inodeid;
 	long addr;
-	struct inode *temp, *newinode;
+	struct inode *temp_inode_ptr, *newinode;
 
 	inodeid = dinodeid % NHINO;
 	if (hinode[inodeid].i_forw == NULL)
 		existed = 0;
 	else
 	{
-		temp = hinode[inodeid].i_forw; 
+		temp_inode_ptr= hinode[inodeid].i_forw; 
 		while (temp)
 		{
-			if (temp->i_ino == dinodeid)  //xiao
+			// i_ino: disk inode flag
+			if (temp_inode_ptr->i_ino == dinodeid)  //xiao
 			/* existed */
 			{
 				existed = 1;
-				temp->i_count ++;
-				return temp;
+				// increment the ref count
+				temp_inode_ptr>i_count++;
+				return temp_inode_ptr;
 			}
 			else  /*not existed*/
-				temp = temp->i_forw;
-
+				temp_inode_ptr = temp_inode_ptr->i_forw;
 		}
+		// not existed
 	}
 
 	/* not existed */   
@@ -41,9 +45,12 @@ unsigned int dinodeid;
 	fseek(fd, addr, SEEK_SET);
 	fread(&(newinode->di_number), DINODESIZ, 1, fd);
 	*/
+	// disk is a global variable declared in main.c
+	// di_number: ref file count
 	memcpy(&(newinode->di_number), disk+addr, DINODESIZ);
 
 	/* 4. put it into hinode[inodeid] queue*/
+	//???
 	newinode->i_forw = hinode[inodeid].i_forw;
 	newinode->i_back = newinode;
 	if (newinode->i_forw)
@@ -59,6 +66,8 @@ unsigned int dinodeid;
 }
 
 
+// put away inode??????
+// pinode: ptr inode
 iput(pinode)
 struct inode *pinode;
 {
@@ -68,7 +77,7 @@ struct inode *pinode;
 
 	if (pinode->i_count > 1)
 	{
-		pinode->i_count --;
+		pinode->i_count--;
 		return;
 	}
 	else

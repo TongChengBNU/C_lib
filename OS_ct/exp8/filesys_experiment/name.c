@@ -4,7 +4,7 @@
 
 unsigned int namei(char *name)
 {
-	int  i,notfound=1;  //xiao ??? varible notfound is useless
+	int i, notfound=1;  //xiao ??? varible notfound is useless
 
 	for (i=0; ((i<dir.size) && (notfound)); i++)
 		if ((!strcmp(dir.direct[i].d_name, name)) && (dir.direct[i].d_ino != 0))

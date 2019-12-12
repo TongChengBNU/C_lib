@@ -1,8 +1,10 @@
- #include<fstream.h>			// 用于文件操作
-/* #include<fstream>			// 用于文件操作 */
+// #include<fstream.h>			// 用于文件操作
+#include<fstream>			// 用于文件操作 */
 #include<stdlib.h>			// 用于程序流程控制
+#include <iostream>
 
-/* using namespace std; */
+
+using namespace std;
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -42,7 +44,7 @@ void checkCRC(int &chCurrByte, int chNextByte)
 }
 
 
-void main(int argc, char* argv[])		
+int main(int argc, char* argv[])		
 {
 	// 检测命令行参数的正确性
 	if (argc != 2)
@@ -52,7 +54,8 @@ void main(int argc, char* argv[])
 	}
 
 	// 检测输入文件是否存在，并可以按所需的权限和方式打开
-	ifstream file(argv[1], ios::in|ios::binary|ios::nocreate);
+	//ifstream file(argv[1], ios::in|ios::binary|ios::nocreate);
+	ifstream file(argv[1], ios::in|ios::binary);
 	if (!file.is_open())
 	{
 		cout << "无法打开帧封装包文件，请检查文件是否存在并且未损坏" << endl;
@@ -226,7 +229,7 @@ void main(int argc, char* argv[])
 		
 		// 以文本格式数据字段，并校验
 		cout << endl << "数据字段：\t";	
-		unsigned char* pData = new unsigned char[nCurrDataLength];	// 创建缓冲区
+		unsigned char* pData = new unsigned char[nCurrDataLength+100];	// 创建缓冲区
 		file.seekg(bParseCont ? (-8 - 1 -nCurrDataLength) : ( -1 - nCurrDataLength), ios::cur);
 		file.read(pData, nCurrDataLength);				// 读入数据字段
 		
@@ -293,4 +296,5 @@ void main(int argc, char* argv[])
 	// 关闭输入文件
 	file.close();
 
+	return 0;
 }

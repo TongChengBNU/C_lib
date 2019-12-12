@@ -30,6 +30,7 @@ install()
 	/*3. initialize the sys_ofile*/
 	for (i=0; i<SYSOPENFILE; i++)
 	{
+		// sys_ofile is global declared in main.c
 		sys_ofile[i].f_count = 0;
 		sys_ofile[i].f_inode = NULL;
 	}
@@ -37,6 +38,7 @@ install()
 	/*4. initialize the user*/
 	for (i=0; i<USERNUM; i++)
 	{
+		// user is global declared in main.c
 		user[i].u_uid = 0;
 		user[i].u_gid = 0;
 		for (j=0; j<NOFILE; j++)

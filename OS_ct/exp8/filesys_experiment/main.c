@@ -4,20 +4,25 @@
 struct hinode hinode[NHINO];
 
 struct dir dir;
+// system open table
 struct file sys_ofile[SYSOPENFILE];
 struct filsys filsys;
+// passwd container
 struct pwd pwd[PWDNUM];
+// user container
 struct user user[USERNUM];
+
 struct file *fd;   //xiao
 struct inode *cur_path_inode;
 int user_id;
 
 
-char   disk[(DINODEBLK+FILEBLK+2)*BLOCKSIZ];
+char disk[(DINODEBLK+FILEBLK+2)*BLOCKSIZ];
 
-main()
+int main()
 {
-	unsigned short ab_fd1,ab_fd2,ab_fd3,ab_fd4;
+	// abstract file descriptor
+	unsigned short ab_fd1, ab_fd2, ab_fd3, ab_fd4;
 	unsigned short bhy_fd1;
 	char *buf;
 
@@ -30,7 +35,10 @@ main()
 			format();
 	}
 	*/
-       format();
+
+    format();
+
+	// to be continued ..........
 	install();
 	_dir();
 
