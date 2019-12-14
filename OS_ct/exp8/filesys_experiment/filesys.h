@@ -193,13 +193,15 @@ extern void ifree();
 
 // defined in name.c
 // search  directories
-extern unsigned int namei();
+//extern unsigned int namei();
+extern int namei();
 // search files under current directory
 extern unsigned short iname();
 
 // defined in access.c
 // access control
-extern unsigned int access();
+//extern unsigned int access();
+extern unsigned int access(unsigned int user_id,  struct inode *inode,  unsigned short mode);
 
 // defined in dir.c
 // display current directories and files
@@ -211,11 +213,11 @@ extern void chdir();
 
 // defined in open.c
 // open file
-extern unsigned short open();
+extern unsigned short open(int user_id, char *filename, unsigned short openmode);
 
 // defined in create.c
 // create file
-extern unsigned short create();
+extern unsigned short create(unsigned int user_id, char *filename, unsigned short mode);
 
 // defined in rdwt.c
 // read file
@@ -225,9 +227,10 @@ extern unsigned int write();
 
 // defined in log.c
 // log into filesystem
-extern int login();
+extern int login(unsigned short uid, char *passwd);
 // log out filesystem
-extern void logout();
+//extern void logout();
+extern int logout(unsigned short uid);
 
 // defined in install.c
 // enter into filesystem
@@ -237,11 +240,11 @@ extern void install();
 // format the whole file system
 extern void format();
 // may be not used in main.c???
-extern void memcpy();
+//extern void memcpy();
 
 // defined in close.c
 // close file
-extern void close();
+extern void close(unsigned int user_id, unsigned short cfd);
 // defined in halt.c
 // exit the whole file system
 extern void halt();

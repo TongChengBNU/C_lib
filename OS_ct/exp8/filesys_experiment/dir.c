@@ -51,7 +51,7 @@ void _dir()
 }
 
 
-
+// make directory
 void mkdir(char *dirname)
 {
 	int dirid, dirpos;
@@ -103,10 +103,10 @@ void mkdir(char *dirname)
 	iput(inode);
 
 	return;
-	
 }
 
 
+// change directory
 void chdir(char *dirname)
 {
 	unsigned int dirid;

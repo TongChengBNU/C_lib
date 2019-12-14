@@ -7,7 +7,7 @@ void format()
 	// every block could contain BlOCKSIZ/(sizeof(struct direct)) struct direct;
 	// ------------ DIRSIZ+4 is so arcane -.-!
 	// struct direct dir_buf[BLOCKSIZ/(DIRSIZ+4)];
-	struct direct dir_buf[BlOCKSIZ/(sizeof(struct direct))];
+	struct direct dir_buf[BLOCKSIZ/(sizeof(struct direct))];
 
 	//struct pwd passwd[BLOCKSIZ/(PWDSIZ+4)];
 	struct pwd passwd[32];
@@ -117,13 +117,7 @@ void format()
 		passwd[i].p_gid = 0;
 		strcpy(passwd[i].password, "            ");  // PWDSIZ " "
 	}
-}	
 
-
-//added by xiao for a while
-// why add this memcpy??
-void memcpy(pwd, passwd, 32*sizeof(struct pwd))
-{
 	/*
 	fseek(fd, DATASTART+2*BLOCKSIZ, SEEK_SET);
 	fwrite(passwd,1,BLOCKSIZ, fd);
@@ -156,6 +150,9 @@ void memcpy(pwd, passwd, 32*sizeof(struct pwd))
 	    block_buf[47]--> FILBLK-1
 	    block_buf[48]--> FILBLK*/
 
+	// ----------------------------------
+	// added by Tong Cheng
+	memcpy(pwd, passwd, 32*sizeof(struct pwd));
 	/*
 	fseek(fd, DATASTART+BLOCKSIZ*(FILEBLK-NICFREE-1), SEEK_SET);
 	fwrite(block_buf,1,BLOCKSIZ, fd);
@@ -213,5 +210,103 @@ void memcpy(pwd, passwd, 32*sizeof(struct pwd))
 	memcpy(disk+BLOCKSIZ, &filsys, sizeof(struct filsys));
 
 	return;
-	
-}
+}	
+
+
+//added by xiao for a while
+// why add this memcpy??
+//void memcpy(pwd, passwd, 32*sizeof(struct pwd))
+//void memcpy(pwd, passwd, size)
+//{
+//	/*
+//	fseek(fd, DATASTART+2*BLOCKSIZ, SEEK_SET);
+//	fwrite(passwd,1,BLOCKSIZ, fd);
+//	*/
+//	memcpy(disk+DATASTART+BLOCKSIZ*2, passwd, BLOCKSIZ);
+//	iput(inode);
+//
+//	/*2. initialize the superblock */
+//
+//	filsys.s_isize = DINODEBLK;
+//	filsys.s_fsize = FILEBLK;
+//
+//	filsys.s_ninode = DINODEBLK * BLOCKSIZ/DINODESIZ - 4;
+//	filsys.s_nfree = FILEBLK - 3;
+//
+//	int i, j;
+//	for (i=0; i < NICINOD; i++)
+//	{
+//		/* begin with 4,    0,1,2,3, is used by main,etc,password */
+//		filsys.s_inode[i] = 4+i;
+//	}
+//
+//	filsys.s_pinode = 0;
+//	filsys.s_rinode = NICINOD + 4; 
+//
+//	block_buf[NICFREE-1] = FILEBLK+1;  /*FILEBLK+1 is a flag of end*/
+//	for (i=0; i<NICFREE-1; i++)
+//		block_buf[NICFREE-2-i] = FILEBLK-i-1;
+//
+//	/* block_buf[0]--> FILBLK-48
+//	    block_buf[47]--> FILBLK-1
+//	    block_buf[48]--> FILBLK*/
+//
+//	/*
+//	fseek(fd, DATASTART+BLOCKSIZ*(FILEBLK-NICFREE-1), SEEK_SET);
+//	fwrite(block_buf,1,BLOCKSIZ, fd);
+//	*/    
+//	//BLOCKSIZ*(FILEBLK-NICFREE-1)= 0x39a00
+//	//memcpy(disk+DATASTART+BLOCKSIZ*(FILEBLK-NICFREE-1), block_buf, BLOCKSIZ);
+//
+//	memcpy(disk+DATASTART+BLOCKSIZ*(FILEBLK-NICFREE), block_buf, BLOCKSIZ);
+//
+//	//for (i=FILEBLK-NICFREE-1; i>2; i-=NICFREE)
+//	for (i=FILEBLK-NICFREE; i>2; i-=NICFREE)
+//	{
+//		//added by xiao
+//		if ((i-NICFREE) <= 0)
+//			break;
+//
+//		for (j=0; j<NICFREE;j++)
+//			block_buf[NICFREE-j-1] = i-j;
+//
+//		/*
+//		fseek(fd, DATASTART+BLOCKSIZ*(i-1), SEEK_SET);
+//		fwrite(block_buf, 1, BLOCKSIZ, fd);
+//		*/
+//		//memcpy(disk+DATASTART+BLOCKSIZ*(i-1), block_buf, BLOCKSIZ);
+//		memcpy(disk+DATASTART+BLOCKSIZ*(i-NICFREE), block_buf, BLOCKSIZ);
+//		
+//	}
+///*
+//	j = 1;
+//	for (i=i; i>2; i--)          //xiao ????????????????????????????
+//	{
+//		filsys.s_free[NICFREE+i-j] = i;
+//	}
+//*/
+//
+// 	j = i;
+//	for (i=j; i>2; i--)          //xiao ????????????????????????????
+//	{
+//		filsys.s_free[NICFREE-(j-i)-1] = i; 
+//	}
+//	/*
+//	j = NICFREE+i;
+//	for (i=j; i>2; i--)          //xiao ????????????????????????????
+//	{
+//		filsys.s_free[NICFREE+i-j-1] = i; 
+//	}*/
+//  
+//	filsys.s_pfree = NICFREE - j+2; 
+//	filsys.s_pinode = 0; 
+//
+//	/* 
+//	fseek(fd, BLOCKSIZ, SEEK_SET);
+//	fwrite(&filsys, 1, sizeof(struct filsys), fd);
+//	*/
+//	memcpy(disk+BLOCKSIZ, &filsys, sizeof(struct filsys));
+//
+//	return;
+//	
+//}

@@ -13,6 +13,7 @@ struct pwd pwd[PWDNUM];
 struct user user[USERNUM];
 
 struct file *fd;   //xiao
+// current path inode
 struct inode *cur_path_inode;
 int user_id;
 
@@ -36,9 +37,9 @@ int main()
 	}
 	*/
 
+	// format disk
     format();
-
-	// to be continued ..........
+	// install file system
 	install();
 	_dir();
 

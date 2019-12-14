@@ -2,7 +2,8 @@
 #include <string.h>
 #include "filesys.h"
 
-unsigned int namei(char *name)
+//unsigned int namei(char *name)
+int namei(char *name)
 {
 	int i, notfound=1;  //xiao ??? varible notfound is useless
 
@@ -11,7 +12,8 @@ unsigned int namei(char *name)
 			//return i;   /**/
 			return (dir.direct[i].d_ino);  //xiao 
 
-	return NULL;  //not find
+	//return NULL;  //not find
+	return -1;
 } 
    
 

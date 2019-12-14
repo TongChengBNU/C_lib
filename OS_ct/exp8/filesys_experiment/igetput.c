@@ -16,7 +16,7 @@ unsigned int dinodeid;
 	else
 	{
 		temp_inode_ptr= hinode[inodeid].i_forw; 
-		while (temp)
+		while (temp_inode_ptr)
 		{
 			// i_ino: disk inode flag
 			if (temp_inode_ptr->i_ino == dinodeid)  //xiao
@@ -24,7 +24,7 @@ unsigned int dinodeid;
 			{
 				existed = 1;
 				// increment the ref count
-				temp_inode_ptr>i_count++;
+				temp_inode_ptr->i_count++;
 				return temp_inode_ptr;
 			}
 			else  /*not existed*/

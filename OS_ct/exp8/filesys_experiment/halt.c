@@ -20,7 +20,8 @@ void halt()
 			{
 				if (user[i].u_ofile[j] != SYSOPENFILE + 1)
 				{
-					close(user[i].u_ofile[j]);
+					//close(user[i].u_ofile[j]);
+					close(user[i].u_uid, user[i].u_ofile[j]); // modified by Tong Cheng
 					user[i].u_ofile[j] = SYSOPENFILE + 1;
 				}
 			}
