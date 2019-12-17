@@ -3,6 +3,7 @@
 
 static struct dinode block_buf[BLOCKSIZ/DINODESIZ];
 
+// generate a inode while updating system super block
 struct inode * ialloc()
 {
 	struct inode *temp_inode;

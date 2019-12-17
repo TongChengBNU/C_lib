@@ -9,6 +9,7 @@
 #define PWDSIZ 12
 // password number
 #define PWDNUM 32
+// number of opened file in user open table
 #define NOFILE   20
 // number of address
 #define NADDR  10
@@ -19,9 +20,10 @@
 #define DINODESIZ 52   //xiao 32->52
 
 
-/*filesys*/
+/*system super block*/
+// number of disk inode block 
 #define DINODEBLK  32
-// file block
+// number of file block
 #define FILEBLK   512
 #define NICFREE  50 
 #define NICINOD  50
@@ -31,14 +33,20 @@
 
 
 /*di_mode*/
-// disk empty
-#define DIEMPTY   00000
-// disk file
+// disk empty, 
+//#define DIEMPTY   00000
+#define DIEMPTY  -1  // by Tong Cheng
+// disk file type: binary 0010 0000 0000
 #define DIFILE      01000
-// disk directory
+// disk directory type: binary 0100 0000 0000
+// maybe wrong???
 #define DIDIR     02000
-// default mode
+// default mode: binary 0001 1111 1111
+// use for directory default mode
+// while file default mode is 0011 1111 1111
 #define DEFAULTMODE 00777
+
+
 
 #define UDIREAD 00001          /* USER */
 #define UDIWRITE  00002
@@ -75,12 +83,33 @@
 /* fseek origin */
 #define SEEK_SET  0
 
+// -----------------------------------------------
+// PREDEFINED STRUCT 
+//
+// file system super block 文件系统超级块
+struct filsys{
+	// block
+	unsigned short  s_isize;   /*i节点块块数*/
+	unsigned long   s_fsize;   /*数据块块数*/
+	unsigned int   s_nfree;    /*空闲块块数*/
+	unsigned short  s_pfree;  /*空闲块指针*/
+	unsigned int  s_free[NICFREE];  /*空闲块堆栈*/
+	
+	// inode
+	unsigned int  s_ninode;  /*空闲i节点数 number of free inode in s_inode*/
+	unsigned short  s_pinode;  /*空闲i节点指针 pointer of the sinode*/
+	unsigned int  s_inode[NICINOD];   /*空闲i节点数组*/
+	unsigned int s_rinode;    /*铭记索引节点remember inode*/
+
+	char s_fmod;  /*超级块修改标志*/
+};
+
 // index node
 struct inode{
 	struct inode  *i_forw;    // inode forward
 	struct inode  *i_back;    // inode backward
 	char i_flag;             // flag for not update
-	unsigned int  i_ino;     // disk inode flag     /* 磁盘 i 节点标志*/
+	unsigned int  i_ino;     // inode ID, begin at 0     /* 磁盘 i 节点标志*/
 	unsigned int  i_count;   // ref count   /*引用计数*/
 	unsigned short  di_number; // ref file count /*关联文件数。当为0 时，则删除该文件*/
 	unsigned short  di_mode;  // read/write authority?? should be type? /*存取权限*/
@@ -90,6 +119,7 @@ struct inode{
 	unsigned int   di_addr[NADDR];   // number of physical number /*物理块号*/
 };
 
+// maybe unused
 // disk index node
 struct dinode{
 	unsigned short di_number; /*关联文件数*/
@@ -100,27 +130,18 @@ struct dinode{
 	unsigned int di_addr[NADDR];   /*物理块号*/
 };
 
-// directory entry
+// directory object 目录项
 struct direct{
 	char d_name[DIRSIZ];  // directory name
-	unsigned int d_ino;   // directory number
+	unsigned int d_ino;   // inode ID
 };
 
-// file system super block
-struct filsys{
-	unsigned short  s_isize;   /*i节点块块数*/
-	unsigned long   s_fsize;   /*数据块块数*/
-	unsigned int   s_nfree;    /*空闲块*/
-	unsigned short  s_pfree;  /*空闲块指针*/
-	unsigned int  s_free[NICFREE];  /*空闲块堆栈*/
-	
-	unsigned int  s_ninode;  /*number of free inode in s_inode*/
-	unsigned short  s_pinode;  /*pointer of the sinode*/
-	unsigned int  s_inode[NICINOD];   /*空闲i节点数组*/
-	unsigned int s_rinode;    /*remember inode*/
-
-	char s_fmod;  /*超级块修改标志*/
+// directory 目录
+struct dir{
+	struct direct direct[DIRNUM];
+	int size;  /*当前目录大小*/
 };
+
 
 // password
 // struct pwd corresponds to ?????
@@ -128,12 +149,6 @@ struct pwd{
 	unsigned short p_uid; // user id
 	unsigned short p_gid; // group id
 	char password [PWDSIZ]; // password
-};
-
-// directory : what's the difference between dir and direct?
-struct dir{
-	struct direct direct[DIRNUM];
-	int size;  /*当前目录大小*/
 };
 
 // hash table for searching index node in memory
@@ -156,6 +171,15 @@ struct user{
 	unsigned short u_gid;
 	unsigned short u_ofile[NOFILE];   /*用户打开文件表*/
 };
+// -----------------------------------------------
+
+
+
+
+
+
+
+
 
 extern struct hinode hinode[NHINO];
 extern struct dir dir;  /*当前目录(在内存中全部读入)*/
@@ -171,7 +195,7 @@ extern int user_id;
 extern char disk[(DINODEBLK+FILEBLK+2)*BLOCKSIZ];
 
 // -----------------------------------------------
-// FUNCTION PREDEFINE
+// PREDEFINED FUNCTION 
 //
 // defined in igetput.c
 // get info about inode with id

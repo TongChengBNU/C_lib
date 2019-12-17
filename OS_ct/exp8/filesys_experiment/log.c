@@ -22,6 +22,7 @@ int login(unsigned short uid, char *passwd)
 			{
 				user[j].u_uid = uid;
 				user[j].u_gid = pwd[i].p_gid; 
+				// use this mode for new directory mode
 				user[j].u_default_mode = DEFAULTMODE;
 			}
 			break;

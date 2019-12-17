@@ -1,6 +1,12 @@
 #include <stdio.h>
 #include "filesys.h"
 
+//-----------------------------------------
+// Functionality:
+// init password array;
+//
+// init system super block;
+//-----------------------------------------
 void format()
 {
 	struct inode *inode;
@@ -55,8 +61,8 @@ void format()
 	strcpy(passwd[4].password, "eeee");
 
 
-	/* 1.creat the main directory and its sub dir etc and the file password */
-
+	// --------------------------------------------------------------------------
+	/* 1. creat the main directory and its sub dir etc and the file password */
 	inode = iget(0);   /* 0 empty dinode id*/
 	inode->di_mode = DIEMPTY;
 	iput(inode);
@@ -83,7 +89,9 @@ void format()
 	//memcpy(disk+DATASTART, &dir_buf[1], 2*(DIRSIZ+4));
 	iput(inode);
 
-	inode = iget(2);  /* 2  etc dir id */
+
+	/*  etc dir id */
+	inode = iget(2); 
 	inode->di_number = 1;
 	inode->di_mode = DEFAULTMODE | DIDIR;
 	inode->di_size = 3*(DIRSIZ + 4);
@@ -103,8 +111,8 @@ void format()
 	memcpy(disk+DATASTART+BLOCKSIZ*1, dir_buf, 3*(DIRSIZ+4));
 	iput(inode);
 
-
-	inode = iget(3);  /* 3  password id */
+	/*  password id */
+	inode = iget(3); 
 	inode->di_number = 1;
 	inode->di_mode = DEFAULTMODE | DIFILE;
 	inode->di_size = BLOCKSIZ;
@@ -124,27 +132,40 @@ void format()
 	*/
 	memcpy(disk+DATASTART+BLOCKSIZ*2, passwd, BLOCKSIZ);
 	iput(inode);
+	// --------------------------------------------------------------------------
 
-	/*2. initialize the superblock */
 
+
+	// --------------------------------------------------------------------------
+	/*2. initialize the system super block */
+
+	// set number of inode block 
 	filsys.s_isize = DINODEBLK;
+	// set number of data block
 	filsys.s_fsize = FILEBLK;
-
-	filsys.s_ninode = DINODEBLK * BLOCKSIZ/DINODESIZ - 4;
+	// set number of idle block
 	filsys.s_nfree = FILEBLK - 3;
-
+	// set number of idle inode
+	filsys.s_ninode = DINODEBLK * BLOCKSIZ/DINODESIZ - 4;
+	// set array of idle inode
 	for (i=0; i < NICINOD; i++)
 	{
 		/* begin with 4,    0,1,2,3, is used by main,etc,password */
 		filsys.s_inode[i] = 4+i;
 	}
-
+	// set ptr of idle inode
 	filsys.s_pinode = 0;
+	// ????????????
 	filsys.s_rinode = NICINOD + 4; 
 
 	block_buf[NICFREE-1] = FILEBLK+1;  /*FILEBLK+1 is a flag of end*/
 	for (i=0; i<NICFREE-1; i++)
 		block_buf[NICFREE-2-i] = FILEBLK-i-1;
+	// --------------------------------------------------------------------------
+
+
+
+
 
 	/* block_buf[0]--> FILBLK-48
 	    block_buf[47]--> FILBLK-1
@@ -208,6 +229,7 @@ void format()
 	fwrite(&filsys, 1, sizeof(struct filsys), fd);
 	*/
 	memcpy(disk+BLOCKSIZ, &filsys, sizeof(struct filsys));
+
 
 	return;
 }	

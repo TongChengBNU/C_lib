@@ -2,25 +2,28 @@
 #include <string.h>
 #include "filesys.h"
 
-
+// show current directory
 void _dir()
 {
-	unsigned int di_mode;
-	int i,one;
-	int j,k;          //xiao  
+	unsigned short di_mode;
+	int i, one;
+	int j, k;          //xiao  
 	struct inode *temp_inode;
 
-	printf("\n CURRENT DIRECTORY :\n"); 
+	printf("\nCURRENT DIRECTORY:\n"); 
 
 	for (i=0; i<dir.size; i++)
 	{ 
+		// a deleted file should have DIEMPTY
 		if (dir.direct[i].d_ino != DIEMPTY)  
 		{
 			printf("%-14s", dir.direct[i].d_name); 
 			temp_inode = iget(dir.direct[i].d_ino);
-			//di_mode = temp_inode->di_mode;  by xiao
 			di_mode = temp_inode->di_mode & 00777;
 			 
+			// access vector
+			// dimode binary representation
+			// rxzrxzrxz
 			for (j=0; j<9; j++)
 			{
 				one = di_mode%2;
@@ -32,22 +35,27 @@ void _dir()
 					printf("-");
 			}
 
-			//if (temp_inode->di_mode && DIFILE == 1)
 			if (temp_inode->di_mode & DIFILE)   //by xiao
 			{
+				// display file info
+				
 				printf(" %-5d ", temp_inode->di_size);
-				printf("block chain:"); 
+				// show numbers of disk block this file occupies
+				printf("Disk block chain:"); 
 
-				for (k=0; k < temp_inode->di_size/BLOCKSIZ+1; k++)
+				for (k=0; k<temp_inode->di_size/BLOCKSIZ+1; k++)
 					printf("%3d", temp_inode->di_addr[k]);
 				printf("\n");
 			}
 			else
-				printf("<dir>\n");
+			{
+				// display directory info
+				printf(" <dir>\n");
+			}
 			iput(temp_inode);
 		} 
 	}
-
+	return;
 }
 
 
@@ -59,14 +67,16 @@ void mkdir(char *dirname)
 	struct direct buf[BLOCKSIZ/(DIRSIZ+4)];
 	unsigned int block;
 
-	dirid= namei(dirname);
-	if (dirid != NULL)
+	dirid = namei(dirname);
+	// if dirid = -1, then dirname not found;
+	if (dirid != -1)
 	{
 		inode = iget(dirid);
-		if (inode->di_mode & DIDIR)
+		//if (inode->di_mode & DIDIR)
+		if (!(inode->di_mode>>9))
 			printf("\n%s directory already existed!!", dirname); //xiao
 		else
-			printf("\n%s is a file name, can't creat a dir the same name", dirname);
+			printf("\n%s is a file name, can't create a dir the same name", dirname);
 		iput(inode);
 		return;
 	}
@@ -95,6 +105,7 @@ void mkdir(char *dirname)
 
 	inode->di_size = 2*(DIRSIZ+4);
 	inode->di_number = 1; 
+	// directory mode
 	inode->di_mode = user[user_id].u_default_mode;
 	inode->di_uid = user[user_id].u_uid;
 	inode->di_gid = user[user_id].u_gid;

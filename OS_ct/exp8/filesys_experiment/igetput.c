@@ -1,8 +1,9 @@
 #include <stdio.h>
 #include "filesys.h"
 
-// generate inode
+// functionality: generate a new inode or get a existed inode
 // input: disk inode id
+// output: a struct inode
 struct inode * iget(dinodeid)
 unsigned int dinodeid;
 {

@@ -43,20 +43,21 @@ unsigned int balloc()
 }
 
 // modified by Tong Cheng
+// block free
 void bfree(unsigned int block_num)
 {
 	int i;
 
 	if (filsys.s_pfree == 0)   /* s_free full*/
 	{
-		block_buf[NICFREE]=NICFREE;
+		block_buf[NICFREE] = NICFREE;
 		for(i=0; i<NICFREE; i++)
 			block_buf[i] = filsys.s_free[NICFREE-1-i];
 		filsys.s_pfree = NICFREE-1;
 	}
 
 	
-	fseek(fd, DATASTART+block_num*BLOCKSIZ, SEEK_SET);//add by xiao
+	fseek(fd, DATASTART+block_num*BLOCKSIZ, SEEK_SET); //add by xiao
 	fwrite(block_buf,1,BLOCKSIZ,fd);
 	
 	filsys.s_nfree++;

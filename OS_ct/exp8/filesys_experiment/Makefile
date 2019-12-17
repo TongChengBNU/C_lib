@@ -2,13 +2,13 @@
 
 Object_path = ./Object/
 
-filesys: $(Object_path)main.o $(Object_path)igetput.o $(Object_path)iallfre.o $(Object_path)ballfre.o $(Object_path)name.o $(Object_path)access.o $(Object_path)log.o $(Object_path)close.o $(Object_path)create.o $(Object_path)delete.o $(Object_path)dir.o $(Object_path)dirlt.o $(Object_path)open.o $(Object_path)rdwt.o $(Object_path)format.o $(Object_path)install.o $(Object_path)halt.o
+filesys_ct: $(Object_path)main.o $(Object_path)igetput.o $(Object_path)iallfre.o $(Object_path)ballfre.o $(Object_path)name.o $(Object_path)access.o $(Object_path)log.o $(Object_path)close.o $(Object_path)create.o $(Object_path)delete.o $(Object_path)dir.o $(Object_path)dirlt.o $(Object_path)open.o $(Object_path)rdwt.o $(Object_path)format.o $(Object_path)install.o $(Object_path)halt.o
 	#gcc -o filesys main.o igetput.o iallfre.o ballfre.o name.o access.o log.o close.o create.o delete.o dir.o dirlt.o open.o rdwt.o format.o install.o halt.o
-	gcc -o filesys $^
+	gcc -o $@ $^
 
 # 17 .c files
-$(Object_path)main.o: main.c filesys.h
-	gcc -c main.c -o $@
+$(Object_path)main.o: main_ct.c filesys.h
+	gcc -c main_ct.c -o $@
 
 $(Object_path)igetput.o: igetput.c filesys.h
 	gcc -c igetput.c -o $@

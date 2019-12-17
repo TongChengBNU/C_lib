@@ -2,21 +2,28 @@
 #include <string.h>
 #include "filesys.h"
 
+// mapp filename into inode index
 //unsigned int namei(char *name)
 int namei(char *name)
 {
 	int i, notfound=1;  //xiao ??? varible notfound is useless
 
 	for (i=0; ((i<dir.size) && (notfound)); i++)
+	{
 		if ((!strcmp(dir.direct[i].d_name, name)) && (dir.direct[i].d_ino != 0))
+		{
 			//return i;   /**/
 			return (dir.direct[i].d_ino);  //xiao 
+		}
+
+	}
 
 	//return NULL;  //not find
 	return -1;
 } 
    
 
+// return a index of directory object with no connection to inode
 unsigned short iname(char *name)
 {
 	int i, notfound = 1;
@@ -28,6 +35,7 @@ unsigned short iname(char *name)
 			break;
 		}
 
+	// all directory object have inode
 	if (notfound)
 	{
 		printf("\nThe current directory is full!!!\n");
@@ -36,7 +44,7 @@ unsigned short iname(char *name)
 	else
 	{
 		//strcpy(name, dir.direct[i].d_name);   modified by xiao 
-		strcpy( dir.direct[i].d_name, name); 
+		strcpy(dir.direct[i].d_name, name); 
 		return i;
 	} 
 }
