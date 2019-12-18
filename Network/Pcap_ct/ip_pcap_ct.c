@@ -4,17 +4,10 @@
 #include <stdlib.h>
 #include "pcap_ct.h"
 
-// crc32 reverse table
-//extern alt_u32 Table1[256];
-int tcp_udp_data_offset=0;
 
  
 int main()
 {
-	//生成翻转表，是官方推荐的，故称其为normal_table
-	//gen_normal_table(Table1);
-
-
 	pcap_t *fp;
 	// *alldev: ptr of link list of struct pcap_if_t
 	// *d: moving ptr or tmp ptr;
@@ -191,20 +184,6 @@ void ethernet_protocol_packet_callback(u_char *argument, const struct pcap_pkthd
 		default:break;
 	}
 
-	// check sum, packet_content in pcap does not contain preamable and crc
-	//printf("Check sum of frame:\n");
-	//cksum_ptr = (char *)(packet_content + (packet_header->len-4));
-	//for(int i=0;i<4;i++)
-	//{
-	//	printf("%x ", *(cksum_ptr++));
-	//}
-	//putchar('\n');
-	//alt_u8 *crc_content_ptr = (alt_u8 *)packet_content;
-	//alt_u8 *crc_stop_ptr = (alt_u8 *)(packet_content + (packet_header->len-4));
-	////使用翻转表，官方推荐的，很快
-	//printf("Reverse Table  ref + xor : %08x\n",Reverse_Table_CRC(crc_content_ptr, packet_header->len-4, Table1));
-
-
 
 	if (ethernet_type == 0x0800)  
 	{
@@ -246,7 +225,6 @@ void ip_protocol_packet_callback(u_char *argument, const struct pcap_pkthdr* pac
 	printf("Check sum:%d\n", ip_protocol->ip_checksum);
 	printf("Source IP address:%s\n", inet_ntoa(ip_protocol->ip_source_address));
 	printf("Destination IP address:%s\n", inet_ntoa(ip_protocol->ip_destination_address));
-	//printf("Content:%s\n", ip_protocol->content);
 	if(ip_protocol->ip_protocol == 6)
 	{
 		// continue to analyze TCP datagram
@@ -274,8 +252,6 @@ void tcp_protocol_packet_callback(u_char *argument, const struct pcap_pkthdr *pc
 	printf("Destination port: %d\n", dst_port);
 	printf("Offset: %x | %d\n", hdr_offset>>12, hdr_offset>>12);
 	printf("Check sum: %d\n", checksum);
-	//printf("Content: \n%s\n", tcp_protocol->content+20+tcp_udp_data_offset);
-	//printf("Content: \n%s\n", tcp_protocol->content+2*(hdr_offset>>12));
 	printf("Content: \n%s\n", (packet_content)+4*(hdr_offset>>12));
 	return;
 }
@@ -296,12 +272,6 @@ void udp_protocol_packet_callback(u_char *argument, const struct pcap_pkthdr *pc
 	printf("Length of UDP: %d\n", udp_length);
 	printf("Check sum: %d\n", checksum);
 
-	//int option=40;
-	//for(int i=0;i<option;i++)
-	//{
-	//	printf("Content %d: %x\n", i,udp_protocol->content[i]);
-	//}
-	// after testing, the offset should be 26
 	printf("Content: \n%s\n", packet_content+sizeof(struct udp_header));
 
 	return;
