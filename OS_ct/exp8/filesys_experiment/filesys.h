@@ -111,20 +111,19 @@ struct filsys{
 	char s_fmod;  /*超级块修改标志*/
 };
 
-// index node
+// memory index node
 // size 8+8+1+4+4+2+2+2+2+2+4*10 = 75
 struct inode{
 	struct inode  *i_forw;    // inode forward
 	struct inode  *i_back;    // inode backward
 	char i_flag;             // flag for not update
-	unsigned int  i_ino;     // inode ID, begin at 0 磁盘i节点标志
-	unsigned int  i_count;   // ref count 引用计数
-	unsigned short  di_mode;  // 10 bits access vector 
+	unsigned int  i_ino;     // inode ID, begin at 0 内存i节点标志
+	unsigned int  i_count;   // ref count 访问计数
 
+	unsigned short  di_mode;  // 10 bits access vector 
+	unsigned short  di_number; /*关联文件数*/ 
 	unsigned short  di_uid;   // disk index node user id
 	unsigned short  di_gid;   // disk index node group id
-
-	unsigned short  di_number; // disk block number
 	unsigned short  di_size;  // size of file 文件大小
 	// NADDR = 10
 	unsigned int   di_addr[NADDR];   // number of physical number /*物理块号*/
@@ -132,11 +131,10 @@ struct inode{
 	char options[53];
 };
 
-// maybe unused------------------
 // disk index node
 struct dinode{
-	unsigned short di_number; /*关联文件数*/
 	unsigned short di_mode; /*存取权限*/
+	unsigned short di_number; /*关联文件数*/
 	unsigned short di_uid;  //ct: disk index node user id
 	unsigned short di_gid;  //ct: disk index node group id
 	unsigned short di_size;  /*文件大小*/
@@ -144,6 +142,7 @@ struct dinode{
 };
 
 // directory object 目录项
+// size: 16
 struct direct{
 	char d_name[DIRSIZ];  // directory name
 	unsigned int d_ino;   // inode ID
