@@ -10,7 +10,8 @@ struct inode * ialloc()
 	unsigned int cur_di;
 	int i,count, block_end_flag;
 
-	if (filsys.s_pinode == NICINOD)   /* s_inode empty*/
+	/* s_inode full */
+	if (filsys.s_pinode == NICINOD)  
 	{
 		i=0; 
 		count = 0;
@@ -52,12 +53,10 @@ struct inode * ialloc()
 		filsys.s_rinode = cur_di;
 	}
 
-	temp_inode = iget(filsys.s_inode[filsys.s_pinode]);
-	/*
-	fseek(fd, DINODESTART+filsys.s_inode[filsys.s_pinode]*DINODESIZ, SEEK_SET);
-	fwrite(&temp_inode->di_number, 1, sizeof(struct dinode), fd);
-	*/
-	memcpy(disk+DINODESTART+filsys.s_inode[filsys.s_pinode]*DINODESIZ,
+	unsigned int inode_ino = filsys.s_inode[filsys.s_pinode];
+	temp_inode = iget(inode_ino);
+	// write new inode into disk
+	memcpy(disk+DINODESTART+inode_ino*DINODESIZ,
 	             &temp_inode->di_number, sizeof(struct dinode));
 	filsys.s_pinode ++;
 	filsys.s_ninode --;   

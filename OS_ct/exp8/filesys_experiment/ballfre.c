@@ -3,17 +3,21 @@
 
 static unsigned int block_buf[BLOCKSIZ];
 
+// return ID number of idle block with update
 unsigned int balloc()
 {
 	unsigned int free_block, free_block_num;
 	int i;
 
+	// s_nfree: number of idle block
 	if (filsys.s_nfree == 0)
 	{
 		printf("\nDisk Full!!!\n");
 		return DISKFULL;
 	}
 
+
+	// free_block: index of next block
 	free_block = filsys.s_free[filsys.s_pfree]; 
 	if (filsys.s_pfree == NICFREE-1)
 	{ 
@@ -55,10 +59,14 @@ void bfree(unsigned int block_num)
 			block_buf[i] = filsys.s_free[NICFREE-1-i];
 		filsys.s_pfree = NICFREE-1;
 	}
+	else
+	{
+		filsys.s_pfree--;
+	}
 
 	
-	fseek(fd, DATASTART+block_num*BLOCKSIZ, SEEK_SET); //add by xiao
-	fwrite(block_buf,1,BLOCKSIZ,fd);
+	//fseek(fd, DATASTART+block_num*BLOCKSIZ, SEEK_SET); //add by xiao
+	//fwrite(block_buf,1,BLOCKSIZ,fd);
 	
 	filsys.s_nfree++;
 	filsys.s_fmod = SUPDATE;

@@ -7,18 +7,18 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
  
-void memcpy()
-{
-	printf("Hello World\n");
-}
 
 
 int main()
 {
-	unsigned short a = 00777;
-	printf("%o, %d, %x\n", a, a, a);
-	memcpy();
+	unsigned short *a;
+	int *b;
+	char buffer[10] = "Hello";
+	char name[10];
+	strcpy(name, buffer);
+	printf("%s %s", buffer, name);
 
 
 	return 0;

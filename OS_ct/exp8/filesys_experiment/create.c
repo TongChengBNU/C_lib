@@ -74,7 +74,7 @@ unsigned short create(unsigned int user_id, char *filename, unsigned short mode)
 		dir.size++; 
 		dir.direct[di_ith].d_ino = inode->i_ino;
 
-		inode->di_mode = mode;
+		inode->di_mode = (mode & 0777) | DIFILE;
 		inode->di_uid = user[user_sen].u_uid;
 		inode->di_gid = user[user_sen].u_gid; 
 		inode->di_size = 0;

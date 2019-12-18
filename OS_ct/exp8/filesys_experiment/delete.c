@@ -3,6 +3,7 @@
 #include "filesys.h"
 
 // how to denote a file has been deleted?
+// no inode
 void delete(char *filename)
 {
 	unsigned int dinodeid;
@@ -23,7 +24,7 @@ void delete(char *filename)
 	{
 		if(!(strcmp(dir.direct[i].d_name, filename)))
 		{
-			dir.direct[i].d_ino = -1;
+			dir.direct[i].d_ino = NOINODE;
 			break;
 		}
 	}

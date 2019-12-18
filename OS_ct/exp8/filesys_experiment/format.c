@@ -3,39 +3,35 @@
 
 //-----------------------------------------
 // Functionality:
-// init password array;
+// init password array buffer;
 //
 // init system super block;
 //-----------------------------------------
 void format()
 {
+	// every buffer should be no more than 1 block
+	
 	struct inode *inode;
 	// every block could contain BlOCKSIZ/(sizeof(struct direct)) struct direct;
 	// ------------ DIRSIZ+4 is so arcane -.-!
 	// struct direct dir_buf[BLOCKSIZ/(DIRSIZ+4)];
 	struct direct dir_buf[BLOCKSIZ/(sizeof(struct direct))];
 
+	// every block could contain BlOCKSIZ/(sizeof(struct pwd)) struct pwd;
+	// ------------ PWDSIZ+4 is so arcane -.-!
 	//struct pwd passwd[BLOCKSIZ/(PWDSIZ+4)];
-	struct pwd passwd[32];
-	/*
-		{
-			{2116,03,"dddd"},
-			{2117,03,"bbbb"},
-			{2118,04,"abcd"},
-			{2119,04,"cccc"},
-			{2120,03,"eeee"},
-		};
-	*/
+	struct pwd passwd[PWDNUM];
 
 	//	struct filsys;  xiao
 	unsigned int block_buf[BLOCKSIZ/sizeof(int)];
+
 	char *buf;
 	int i,j;
 
 	// disk is a global variable declared in main.c
 	// there are (DINODEBLK+FILEBLK+2) disk block
 	// Preparation: initialize the memory to 0x00
-	memset(disk, 0x00, ((DINODEBLK+FILEBLK+2)*BLOCKSIZ));
+	memset(disk, 0x00, ((2+DINODEBLK+FILEBLK)*BLOCKSIZ));
 
 
 	/* 0.initialize the passwd */
@@ -62,17 +58,22 @@ void format()
 
 
 	// --------------------------------------------------------------------------
-	/* 1. creat the main directory and its sub dir etc and the file password */
+	/* 1. creat the main directory
+	 * and its sub dir etc 
+	 * and the file password */
+
+	// 0 inode for deleting link
 	inode = iget(0);   /* 0 empty dinode id*/
-	inode->di_mode = DIEMPTY;
+	inode->di_mode = 0;  // to be modified...
 	iput(inode);
 
-	inode = iget(1);   /* 1 main dir id*/
-	inode->di_number = 1;
-	// ?????????????
+	// inode 1#: main dir
+	inode = iget(1);   
 	inode->di_mode = DEFAULTMODE | DIDIR;
-	inode->di_size = 3*(DIRSIZ + 4);
-	inode->di_addr[0] = 0; /*block 0# is used by the main directory*/
+	inode->di_number = 1;
+	inode->di_size = 3*sizeof(struct direct);
+	// block 0# is used by the main directory
+	inode->di_addr[0] = 0; 
 	
 	strcpy(dir_buf[0].d_name, "..");
 	dir_buf[0].d_ino = 1;
@@ -81,21 +82,18 @@ void format()
 	strcpy(dir_buf[2].d_name,"etc");
 	dir_buf[2].d_ino = 2;
 
-	/*
-	fseek(fd, DATASTART, SEEK_SET);
-	fwrite(dir_buf,1,3*(DIRSIZ+4),fd);   //xiao ???  2-->4
-	*/
-	memcpy(disk+DATASTART, &dir_buf, 3*(DIRSIZ+4));
-	//memcpy(disk+DATASTART, &dir_buf[1], 2*(DIRSIZ+4));
+	// write content into block 0#
+	memcpy(disk+DATASTART, dir_buf, 3*(sizeof(struct direct)));
 	iput(inode);
 
 
-	/*  etc dir id */
+	// inode 2#: etc dir 
 	inode = iget(2); 
-	inode->di_number = 1;
 	inode->di_mode = DEFAULTMODE | DIDIR;
-	inode->di_size = 3*(DIRSIZ + 4);
-	inode->di_addr[0] = 1; /*block 1# is used by the etc directory*/
+	inode->di_number = 1;
+	inode->di_size = 3*sizeof(struct direct);
+	// block 1# is used by the etc directory
+	inode->di_addr[0] = 1;
 	
 	strcpy(dir_buf[0].d_name,"..");
 	dir_buf[0].d_ino = 1;
@@ -104,35 +102,42 @@ void format()
 	strcpy(dir_buf[2].d_name,"password");
 	dir_buf[2].d_ino = 3;
 
-	/*
-	fseek(fd, DATASTART+BLOCKSIZ*1, SEEK_SET);
-	fwrite(dir_buf,1,3*(DIRSIZ+4),fd);
-	*/
-	memcpy(disk+DATASTART+BLOCKSIZ*1, dir_buf, 3*(DIRSIZ+4));
+	// write content into block 1#
+	memcpy(disk+DATASTART+BLOCKSIZ*1, dir_buf, 3*(sizeof(struct direct)));
 	iput(inode);
 
-	/*  password id */
+
+	// inode 3#: password dir 
 	inode = iget(3); 
-	inode->di_number = 1;
 	inode->di_mode = DEFAULTMODE | DIFILE;
+	inode->di_number = 1;
 	inode->di_size = BLOCKSIZ;
-	inode->di_addr[0] = 2; /*block 2# is used by the password file*/
+	// block 2# is used by the password file
+	inode->di_addr[0] = 2;
 
 	// Besides first 5 pwds, set others to Null
 	for (i=5; i<PWDNUM; i++)
 	{
 		passwd[i].p_uid = 0;
 		passwd[i].p_gid = 0;
-		strcpy(passwd[i].password, "            ");  // PWDSIZ " "
+		strcpy(passwd[i].password, "            ");
 	}
 
-	/*
-	fseek(fd, DATASTART+2*BLOCKSIZ, SEEK_SET);
-	fwrite(passwd,1,BLOCKSIZ, fd);
-	*/
+	// write content into block 2#
+	// passwd is a global array
 	memcpy(disk+DATASTART+BLOCKSIZ*2, passwd, BLOCKSIZ);
+
+	// added by Tong Cheng
+	// may be not necessary for a real file system
+	// data in 'pwd' is redundancy
+	memcpy(pwd, passwd, 32*sizeof(struct pwd));
+
 	iput(inode);
 	// --------------------------------------------------------------------------
+
+
+
+
 
 
 
@@ -143,11 +148,22 @@ void format()
 	filsys.s_isize = DINODEBLK;
 	// set number of data block
 	filsys.s_fsize = FILEBLK;
-	// set number of idle block
+
+	// set number of idle block, used 3 blocks above
 	filsys.s_nfree = FILEBLK - 3;
-	// set number of idle inode
-	filsys.s_ninode = DINODEBLK * BLOCKSIZ/DINODESIZ - 4;
+	// set ptr of idle block
+	filsys.s_pfree = 0;	
+	// set stack of idle block
+	for(i=0; i<NICFREE; i++)
+	{
+		filsys.s_free[i] = 3+i;
+	}
+
+
+	// set number of idle inode, used 4 inodes above 
+	filsys.s_ninode = DINODEBLK * (BLOCKSIZ/DINODESIZ) - 4;
 	// set array of idle inode
+	// note: NICINOD should be no more than filsys.s_ninode
 	for (i=0; i < NICINOD; i++)
 	{
 		/* begin with 4,    0,1,2,3, is used by main,etc,password */
@@ -155,180 +171,20 @@ void format()
 	}
 	// set ptr of idle inode
 	filsys.s_pinode = 0;
-	// ????????????
+	// for further extension
 	filsys.s_rinode = NICINOD + 4; 
 
-	block_buf[NICFREE-1] = FILEBLK+1;  /*FILEBLK+1 is a flag of end*/
-	for (i=0; i<NICFREE-1; i++)
-		block_buf[NICFREE-2-i] = FILEBLK-i-1;
-	// --------------------------------------------------------------------------
 
 
-
-
-
-	/* block_buf[0]--> FILBLK-48
-	    block_buf[47]--> FILBLK-1
-	    block_buf[48]--> FILBLK*/
-
-	// ----------------------------------
-	// added by Tong Cheng
-	memcpy(pwd, passwd, 32*sizeof(struct pwd));
-	/*
-	fseek(fd, DATASTART+BLOCKSIZ*(FILEBLK-NICFREE-1), SEEK_SET);
-	fwrite(block_buf,1,BLOCKSIZ, fd);
-	*/    
-	//BLOCKSIZ*(FILEBLK-NICFREE-1)= 0x39a00
-	//memcpy(disk+DATASTART+BLOCKSIZ*(FILEBLK-NICFREE-1), block_buf, BLOCKSIZ);
-
-	memcpy(disk+DATASTART+BLOCKSIZ*(FILEBLK-NICFREE), block_buf, BLOCKSIZ);
-
-	//for (i=FILEBLK-NICFREE-1; i>2; i-=NICFREE)
-	for (i=FILEBLK-NICFREE; i>2; i-=NICFREE)
-	{
-		//added by xiao
-		if ((i-NICFREE) <= 0)
-			break;
-
-		for (j=0; j<NICFREE;j++)
-			block_buf[NICFREE-j-1] = i-j;
-
-		/*
-		fseek(fd, DATASTART+BLOCKSIZ*(i-1), SEEK_SET);
-		fwrite(block_buf, 1, BLOCKSIZ, fd);
-		*/
-		//memcpy(disk+DATASTART+BLOCKSIZ*(i-1), block_buf, BLOCKSIZ);
-		memcpy(disk+DATASTART+BLOCKSIZ*(i-NICFREE), block_buf, BLOCKSIZ);
-		
-	}
-/*
-	j = 1;
-	for (i=i; i>2; i--)          //xiao ????????????????????????????
-	{
-		filsys.s_free[NICFREE+i-j] = i;
-	}
-*/
-
- 	j = i;
-	for (i=j; i>2; i--)          //xiao ????????????????????????????
-	{
-		filsys.s_free[NICFREE-(j-i)-1] = i; 
-	}
-	/*
-	j = NICFREE+i;
-	for (i=j; i>2; i--)          //xiao ????????????????????????????
-	{
-		filsys.s_free[NICFREE+i-j-1] = i; 
-	}*/
   
-	filsys.s_pfree = NICFREE - j+2; 
-	filsys.s_pinode = 0; 
 
-	/* 
-	fseek(fd, BLOCKSIZ, SEEK_SET);
-	fwrite(&filsys, 1, sizeof(struct filsys), fd);
-	*/
+	// write file super block into second block within disk
 	memcpy(disk+BLOCKSIZ, &filsys, sizeof(struct filsys));
 
+
+	// --------------------------------------------------------------------------
 
 	return;
 }	
 
 
-//added by xiao for a while
-// why add this memcpy??
-//void memcpy(pwd, passwd, 32*sizeof(struct pwd))
-//void memcpy(pwd, passwd, size)
-//{
-//	/*
-//	fseek(fd, DATASTART+2*BLOCKSIZ, SEEK_SET);
-//	fwrite(passwd,1,BLOCKSIZ, fd);
-//	*/
-//	memcpy(disk+DATASTART+BLOCKSIZ*2, passwd, BLOCKSIZ);
-//	iput(inode);
-//
-//	/*2. initialize the superblock */
-//
-//	filsys.s_isize = DINODEBLK;
-//	filsys.s_fsize = FILEBLK;
-//
-//	filsys.s_ninode = DINODEBLK * BLOCKSIZ/DINODESIZ - 4;
-//	filsys.s_nfree = FILEBLK - 3;
-//
-//	int i, j;
-//	for (i=0; i < NICINOD; i++)
-//	{
-//		/* begin with 4,    0,1,2,3, is used by main,etc,password */
-//		filsys.s_inode[i] = 4+i;
-//	}
-//
-//	filsys.s_pinode = 0;
-//	filsys.s_rinode = NICINOD + 4; 
-//
-//	block_buf[NICFREE-1] = FILEBLK+1;  /*FILEBLK+1 is a flag of end*/
-//	for (i=0; i<NICFREE-1; i++)
-//		block_buf[NICFREE-2-i] = FILEBLK-i-1;
-//
-//	/* block_buf[0]--> FILBLK-48
-//	    block_buf[47]--> FILBLK-1
-//	    block_buf[48]--> FILBLK*/
-//
-//	/*
-//	fseek(fd, DATASTART+BLOCKSIZ*(FILEBLK-NICFREE-1), SEEK_SET);
-//	fwrite(block_buf,1,BLOCKSIZ, fd);
-//	*/    
-//	//BLOCKSIZ*(FILEBLK-NICFREE-1)= 0x39a00
-//	//memcpy(disk+DATASTART+BLOCKSIZ*(FILEBLK-NICFREE-1), block_buf, BLOCKSIZ);
-//
-//	memcpy(disk+DATASTART+BLOCKSIZ*(FILEBLK-NICFREE), block_buf, BLOCKSIZ);
-//
-//	//for (i=FILEBLK-NICFREE-1; i>2; i-=NICFREE)
-//	for (i=FILEBLK-NICFREE; i>2; i-=NICFREE)
-//	{
-//		//added by xiao
-//		if ((i-NICFREE) <= 0)
-//			break;
-//
-//		for (j=0; j<NICFREE;j++)
-//			block_buf[NICFREE-j-1] = i-j;
-//
-//		/*
-//		fseek(fd, DATASTART+BLOCKSIZ*(i-1), SEEK_SET);
-//		fwrite(block_buf, 1, BLOCKSIZ, fd);
-//		*/
-//		//memcpy(disk+DATASTART+BLOCKSIZ*(i-1), block_buf, BLOCKSIZ);
-//		memcpy(disk+DATASTART+BLOCKSIZ*(i-NICFREE), block_buf, BLOCKSIZ);
-//		
-//	}
-///*
-//	j = 1;
-//	for (i=i; i>2; i--)          //xiao ????????????????????????????
-//	{
-//		filsys.s_free[NICFREE+i-j] = i;
-//	}
-//*/
-//
-// 	j = i;
-//	for (i=j; i>2; i--)          //xiao ????????????????????????????
-//	{
-//		filsys.s_free[NICFREE-(j-i)-1] = i; 
-//	}
-//	/*
-//	j = NICFREE+i;
-//	for (i=j; i>2; i--)          //xiao ????????????????????????????
-//	{
-//		filsys.s_free[NICFREE+i-j-1] = i; 
-//	}*/
-//  
-//	filsys.s_pfree = NICFREE - j+2; 
-//	filsys.s_pinode = 0; 
-//
-//	/* 
-//	fseek(fd, BLOCKSIZ, SEEK_SET);
-//	fwrite(&filsys, 1, sizeof(struct filsys), fd);
-//	*/
-//	memcpy(disk+BLOCKSIZ, &filsys, sizeof(struct filsys));
-//
-//	return;
-//	
-//}

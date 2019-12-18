@@ -1,5 +1,3 @@
-// block size
-#define BLOCKSIZ 512
 // system open file number
 #define SYSOPENFILE  40
 #define DIRNUM 128
@@ -7,7 +5,8 @@
 #define DIRSIZ 12    //xiao 14->12
 // password maximum length
 #define PWDSIZ 12
-// password number
+// password number * sizeof(struct pwd)
+// 32 * (12+2+2) = 2^9 = 512 = BLOCKSIZ
 #define PWDNUM 32
 // number of opened file in user open table
 #define NOFILE   20
@@ -16,37 +15,31 @@
 // number of hash inode
 #define NHINO 128       /* must be power of 2 */
 #define USERNUM 10
-// disk inode size
-#define DINODESIZ 52   //xiao 32->52
+
+// block size
+#define BLOCKSIZ 512
+// disk inode size, should be sizeof(struct inode)
+#define DINODESIZ 128 //xiao 32->52 tongcheng 52->128
 
 
-/*system super block*/
-// number of disk inode block 
-#define DINODEBLK  32
-// number of file block
-#define FILEBLK   512
-#define NICFREE  50 
-#define NICINOD  50
-// disk inode start
-#define DINODESTART  (2*BLOCKSIZ)    /*1024   0x400*/
-#define DATASTART  ((2+DINODEBLK)*BLOCKSIZ)     /*d:17408    0x4400*/
+
 
 
 /*di_mode*/
 // disk empty, 
-//#define DIEMPTY   00000
-#define DIEMPTY  -1  // by Tong Cheng
-// disk file type: binary 0010 0000 0000
-#define DIFILE      01000
-// disk directory type: binary 0100 0000 0000
-// maybe wrong???
-#define DIDIR     02000
+#define DIEMPTY   00000
+// disk file type: binary 0000 0000 0000
+#define DIFILE  00000
+// disk directory type: binary 0010 0000 0000
+//#define DIDIR     02000
+#define DIDIR  01000      // by Tong Cheng
 // default mode: binary 0001 1111 1111
-// use for directory default mode
-// while file default mode is 0011 1111 1111
+// file default mode is 0001 1111 1111
+// dir default mode is  0011 1111 1111
 #define DEFAULTMODE 00777
 
-
+// no inode
+#define NOINODE -1
 
 #define UDIREAD 00001          /* USER */
 #define UDIWRITE  00002
@@ -63,14 +56,9 @@
 #define WRITE 2
 #define EXICUTE 3
 
-
-
-
 /* i_flag */
 #define  IUPDATE  00002
 
-/* s_fmod */
-#define SUPDATE  00001 
 
 /* f_flag */
 #define FREAD   00001
@@ -83,6 +71,24 @@
 /* fseek origin */
 #define SEEK_SET  0
 
+
+
+/*system super block*/
+// number of disk inode block 
+#define DINODEBLK  32
+// number of file block
+#define FILEBLK   512
+// size of free block stack
+#define NICFREE  50 
+// size of free inode stack
+#define NICINOD  50
+// disk inode start
+#define DINODESTART  (2*BLOCKSIZ)    /*1024   0x400*/
+// offset of data start in disk
+#define DATASTART  ((2+DINODEBLK)*BLOCKSIZ)     /*d:17408    0x4400*/
+/* s_fmod */
+#define SUPDATE  00001 
+
 // -----------------------------------------------
 // PREDEFINED STRUCT 
 //
@@ -91,6 +97,7 @@ struct filsys{
 	// block
 	unsigned short  s_isize;   /*i节点块块数*/
 	unsigned long   s_fsize;   /*数据块块数*/
+
 	unsigned int   s_nfree;    /*空闲块块数*/
 	unsigned short  s_pfree;  /*空闲块指针*/
 	unsigned int  s_free[NICFREE];  /*空闲块堆栈*/
@@ -105,21 +112,27 @@ struct filsys{
 };
 
 // index node
+// size 8+8+1+4+4+2+2+2+2+2+4*10 = 75
 struct inode{
 	struct inode  *i_forw;    // inode forward
 	struct inode  *i_back;    // inode backward
 	char i_flag;             // flag for not update
-	unsigned int  i_ino;     // inode ID, begin at 0     /* 磁盘 i 节点标志*/
-	unsigned int  i_count;   // ref count   /*引用计数*/
-	unsigned short  di_number; // ref file count /*关联文件数。当为0 时，则删除该文件*/
-	unsigned short  di_mode;  // read/write authority?? should be type? /*存取权限*/
+	unsigned int  i_ino;     // inode ID, begin at 0 磁盘i节点标志
+	unsigned int  i_count;   // ref count 引用计数
+	unsigned short  di_mode;  // 10 bits access vector 
+
 	unsigned short  di_uid;   // disk index node user id
 	unsigned short  di_gid;   // disk index node group id
-	unsigned short  di_size;  // size of file /*文件大小*/
+
+	unsigned short  di_number; // disk block number
+	unsigned short  di_size;  // size of file 文件大小
+	// NADDR = 10
 	unsigned int   di_addr[NADDR];   // number of physical number /*物理块号*/
+	// DINODESIZ 128 - 75 = 53
+	char options[53];
 };
 
-// maybe unused
+// maybe unused------------------
 // disk index node
 struct dinode{
 	unsigned short di_number; /*关联文件数*/
@@ -144,7 +157,7 @@ struct dir{
 
 
 // password
-// struct pwd corresponds to ?????
+// struct pwd corresponds to user using (uid, gid)
 struct pwd{
 	unsigned short p_uid; // user id
 	unsigned short p_gid; // group id
@@ -166,6 +179,7 @@ struct file{
 
 // user open table
 struct user{
+	// least 9 bits
 	unsigned short u_default_mode;
 	unsigned short u_uid;
 	unsigned short u_gid;

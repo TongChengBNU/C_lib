@@ -78,74 +78,30 @@ struct inode *pinode;
 
 	if (pinode->i_count > 1)
 	{
+		// at least 2 filename linking to this inode
 		pinode->i_count--;
 		return;
 	}
 	else
 	{
+		// i_count == 1
 		if (pinode->di_number != 0)
 		{
 			/*write back the inode*/
 			addr = DINODESTART + pinode->i_ino *DINODESIZ;
-			/*
-			fseek(fd, addr, SEEK_SET);
-			fwrite(&pinode->di_number, DINODESIZ, 1, fd);
-			*/
 			memcpy(disk+addr, &pinode->di_number, DINODESIZ);
 		}
 		else
 		{
-			
-			//added by xiao 
-			addr = DINODESTART + pinode->i_ino *DINODESIZ;
-			/*
-			fseek(fd, addr, SEEK_SET);
-			fwrite(&pinode->di_number, DINODESIZ, 1, fd);
-			*/
-			memcpy(disk+addr, &pinode->di_number, DINODESIZ);
+			// no disk block linking to this inode	
+			/*free the inode in the memory*/
 
-			/* rm the inode & the block of the file in the disk*/
-			#if 0
-			block_num = pinode->di_size/BLOCKSIZ;
-			for (i=0; i<block_num; i++)
-				//balloc(pinode->di_addr[i]);
-				bfree(pinode->di_addr[i]);
-			#endif
+			addr = DINODESTART + pinode->i_ino *DINODESIZ;
+			memcpy(disk+addr, &pinode->di_number, DINODESIZ);
 			ifree(pinode->i_ino);
 		}
-
-		/*free the inode in the memory*/
-		/*
-		if (pinode->i_forw == NULL)
-			pinode->i_back->i_forw = NULL;
-		else
-		{
-			pinode->i_forw->i_back = pinode->i_back;
-			pinode->i_back->i_forw = pinode->i_forw;
-		}*/
-
-		//added by xiao 
-		{
-			int inodeid;
-			inodeid = (pinode->i_ino)  % NHINO;
-
-			if (hinode[inodeid].i_forw == pinode)
-			{
-				hinode[inodeid].i_forw = pinode->i_forw;
-				if (pinode->i_forw)
-					pinode->i_forw->i_back = pinode->i_forw;
-			}
-			else
-			{
-				pinode->i_back->i_forw = pinode->i_forw;
-				if (pinode->i_forw)
-					pinode->i_forw->i_back = pinode->i_back;
-			}
-		}
-		//end by xiao
 		
 		free(pinode);
-			
 	}
 
 	return;

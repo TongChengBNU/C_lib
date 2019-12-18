@@ -7,8 +7,10 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include "filesys.h"
 
+// hash inode
 struct hinode hinode[NHINO];
 
 // current directory
@@ -27,10 +29,28 @@ struct file *fd;   //xiao
 struct inode *cur_path_inode;
 int user_id;
 
-char disk[(DINODEBLK+FILEBLK+2)*BLOCKSIZ];
+// disk space: super block, inode block, data block 
+char disk[(2+DINODEBLK+FILEBLK)*BLOCKSIZ];
+
+void interactive_mode();
 
 int main()
 {
+	//login(2118,"abcd");
+	printf("\nFormat the disk \n");
+    format();
+	install();
+	_dir();
+
+	//struct direct *tmp;
+	//tmp = (struct direct *)(disk+DATASTART);
+	//memcpy(tmp, disk+DATASTART, sizeof(struct direct));
+	//printf("%s", tmp->d_name);
+	//printf("%d", tmp->d_ino);
+
+	//login(2118,"abcd");
+	//interactive_mode();
+	/*
 	// abstract file descriptor
 	unsigned short ab_fd1, ab_fd2, ab_fd3, ab_fd4;
 	unsigned short bhy_fd1;
@@ -82,24 +102,114 @@ int main()
 	delete("ab_file0.c");
 	_dir(); 
 	ab_fd4 = create(2118, "ab_file4.c", 01777);  //xiao
-	buf = (char *)malloc(/*BLOCKSIZ*8+*/300);
-	write(ab_fd4,buf,/*BLOCKSIZ*8+*/300);
-	close(user_id,ab_fd4);  //xiao
-	free(buf);
-	_dir(); 
+	*/
 
 
-	ab_fd3 = open(2118, "ab_file2.c", FAPPEND);  
-	buf = (char *)malloc(/*BLOCKSIZ*3+*/100);
-	write(ab_fd3,buf,/*BLOCKSIZ*3+*/100);
-	close(user_id,ab_fd3);  //xiao
-	free(buf);
-	_dir();
-
-	chdir("..");
-	_dir();
-
-	logout(2118); //xiao
-	halt();
+//	buf = (char *)malloc(/*BLOCKSIZ*8+*/300);
+//	write(ab_fd4,buf,/*BLOCKSIZ*8+*/300);
+//	close(user_id,ab_fd4);  //xiao
+//	free(buf);
+//	_dir(); 
+//
+//
+//	ab_fd3 = open(2118, "ab_file2.c", FAPPEND);  
+//	buf = (char *)malloc(/*BLOCKSIZ*3+*/100);
+//	write(ab_fd3,buf,/*BLOCKSIZ*3+*/100);
+//	close(user_id,ab_fd3);  //xiao
+//	free(buf);
+//	_dir();
+//
+//	chdir("..");
+//	_dir();
+//
+//	logout(2118); //xiao
+//	halt();
+	
 	return 0;
+}
+
+void interactive_mode()
+{
+	unsigned short num_option;
+	unsigned short option;
+	unsigned short uid;
+	char passwd[PWDSIZ], dirname[DIRSIZ];
+	char *filename = dirname;
+
+	// login
+	printf("Welcome to memory file system! Please log in -- \n");
+	printf("uid: ");	
+	scanf("%hd", &uid);
+	printf("password: ");	
+	// could add hidden feature ?????????
+	scanf("%s", passwd);
+	printf("%d %s\n", uid, passwd);
+
+	if((login(uid, passwd)) == 1)
+	{
+		printf("Log in success!\n");
+	}
+	else
+	{
+		// exit
+		printf("Goodbye!\n");
+		return;	
+	}
+
+	// operation
+	while(1)
+	{
+		printf("Please select an option below:\n");
+		printf("1. dir; 2. change dir; 3. makefile; 4. makedir; 5. Delete file 6. logout \n");
+		num_option = 6;
+		scanf("%hd", &option);
+		while(option<1 || option > num_option){
+			printf("Option error! Please input again;\n");
+			scanf("%hd", &option);
+		}
+
+		switch(option){
+			case 1:
+				_dir();
+				putchar('\n');
+				break;
+			case 2:
+				printf("Directory name: ");
+				scanf("%s", dirname);
+				chdir(dirname);
+				printf("Change directory success!\n");
+				putchar('\n');
+				break;
+			case 3:
+				printf("New file name: ");
+				scanf("%s", filename);
+				create(uid, filename, 0777);
+				putchar('\n');
+				break;
+			case 4:
+				printf("New directory name: ");
+				scanf("%s", dirname);
+				mkdir(filename);
+				putchar('\n');
+				break;
+			case 5:
+				printf("Delete file name: ");
+				scanf("%s", filename);
+				delete(filename);
+				putchar('\n');
+				break;
+
+			case 6:
+				logout(uid);
+				halt();
+				exit(0);
+				break;
+			default:
+				break;
+		}
+	}
+
+
+
+	return;
 }
