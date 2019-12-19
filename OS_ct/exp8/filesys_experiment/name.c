@@ -2,49 +2,51 @@
 #include <string.h>
 #include "filesys.h"
 
-// mapp filename into inode index
-//unsigned int namei(char *name)
+// Ok
+// mapp filename into disk inode ID
+// input: file or directory name
+// output: -1 or disk inode ID
 int namei(char *name)
 {
-	int i, notfound=1;  //xiao ??? varible notfound is useless
-
-	for (i=0; ((i<dir.size) && (notfound)); i++)
+	for (int i=0; i<dir.size; i++)
 	{
+		// disk inode 0# is empty
 		if ((!strcmp(dir.direct[i].d_name, name)) && (dir.direct[i].d_ino != 0))
 		{
-			//return i;   /**/
 			return (dir.direct[i].d_ino);  //xiao 
 		}
-
 	}
-
-	//return NULL;  //not find
+	// not found
 	return -1;
 } 
    
-
-// return a index of directory object with no connection to inode
-unsigned short iname(char *name)
+// Ok
+// input: new name
+// output: return -1 or a index of directory object with no connection to inode
+int iname(char *name)
 {
 	int i, notfound = 1;
 
+	// search dir
 	for (i=0; ((i<DIRNUM) && (notfound)); i++)
+	{
 		if (dir.direct[i].d_ino == 0)
 		{
 			notfound = 0;
 			break;
 		}
+	}
 
-	// all directory object have inode
 	if (notfound)
 	{
+		// every dir.direct[X] has a inode, which means that dir is full
 		printf("\nThe current directory is full!!!\n");
-		return 0;
+		return -1;
 	}
 	else
 	{
-		//strcpy(name, dir.direct[i].d_name);   modified by xiao 
 		strcpy(dir.direct[i].d_name, name); 
+		// return a index of directory object with no connection to inode
 		return i;
 	} 
 }

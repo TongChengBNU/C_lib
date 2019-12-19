@@ -2,8 +2,8 @@
 #include <string.h>
 #include "filesys.h"
 
-// show current directory
 // OK
+// functionality: show current directory
 void _dir()
 {
 	unsigned short di_mode;
@@ -81,19 +81,19 @@ void _dir()
 }
 
 
-// make directory
+// OK
+// functionality: make directory
+// input: new dirname
 void mkdir(char *dirname)
 {
 	// inode id, idle index in dir.direct
 	int dirid, dirpos;
 	struct inode *inode;
-	struct direct buf[BLOCKSIZ/sizeof(struct direct)];
-	unsigned int block;
 
 	dirid = namei(dirname);
 
 	// if dirid = -1, then dirname not found;
-	// if dirname found
+	// if dirname found, either a directory or file
 	if (dirid != -1)
 	{
 		inode = iget(dirid);
@@ -109,117 +109,71 @@ void mkdir(char *dirname)
 	// if dirname not found, then new directory
 	// find a idle index in dir.direct
 	dirpos = iname(dirname);
-	// generate inode with update
-	inode = ialloc(); 
+	// allocate disk inode 
+	inode = ialloc();
 	dir.direct[dirpos].d_ino = inode->i_ino;
 	dir.size++; 
  
 	/*fill the new dir buf*/
+	// set a buffer size of BLOCKSIZ
+	struct direct buf[BLOCKSIZ/sizeof(struct direct)];
 	memset(buf, 0x00, BLOCKSIZ);  //added by xiao
-	strcpy(buf[0].d_name,".");
-	buf[0].d_ino = inode->i_ino;
-	strcpy(buf[1].d_name, "..");
+	strcpy(buf[0].d_name, "..");
+	buf[0].d_ino = cur_path_inode->i_ino;
+	strcpy(buf[1].d_name, ".");
 	// global cur_path_inode
-	buf[1].d_ino = cur_path_inode->i_ino;
+	buf[1].d_ino = inode->i_ino;
+	// allocate data block, block is the number of data block
+	unsigned int block_id = balloc();
+	// write buffer into data block with id=block_id 
+	// if BLOCKSIZ 不能整除目录项大小，那么这里会出现内存越界
+	// 但是，一个块内恰好能放32个目录项
+	memcpy(disk+ DATASTART+ block_id*BLOCKSIZ, buf, BLOCKSIZ);
 
-	block = balloc();
-	/*
-	fseek(fd, DATASTART+block*BLOCKSIZ, SEEK_SET);
-	fwrite(buf, 1, BLOCKSIZ, fd);
-	*/
-	memcpy(disk+DATASTART+block*BLOCKSIZ, buf, BLOCKSIZ);
-
-	inode->di_size = 2*(DIRSIZ+4);
+	inode->di_size = 2*sizeof(struct direct);
 	inode->di_number = 1; 
 	// directory mode
+	// user is a global container
 	inode->di_mode = user[user_id].u_default_mode | DIDIR;
 	inode->di_uid = user[user_id].u_uid;
 	inode->di_gid = user[user_id].u_gid;
-	inode->di_addr[0] = block;
+	inode->di_addr[0] = block_id;
 
 	iput(inode);
 
 	return;
 }
 
-
-// change directory
+// Ok
+// functionality: change directory
+// input: name to change to 
 void chdir(char *dirname)
 {
-	unsigned int dirid;
-	struct inode *inode; 
-	unsigned short block;
-	int i,j,low=0, high=0;
-
-	dirid = namei(dirname);
+	// search dir
+	int dirid = namei(dirname);
 	if (dirid == -1)
 	{
 		printf("\n%s does not existed\n", dirname);
 		return;
 	} 
-	inode = iget(dirid); 
-/*
-	if (!access(user_id, inode, user[user_id].u_default_mode))
-	{
-		printf("\nhas not access to the directory %s",dirname);
-		iput(inode); 
-		return;
-	}
-*/
-	/*pack the current directory*/
-	#if 0
-	for (i=0; i<dir.size; i++)
-	{
-		for (; j<DIRNUM; j++)
-			if (dir.direct[j].d_ino == 0) 
-				break;
-		memcpy(&dir.direct[i], &dir.direct[j], DIRSIZ+4);  //xiao
-		dir.direct[j].d_ino = 0;
-	}
-
-	/* write back the current directory */
-	for (i=0; i<cur_path_inode->di_size/BLOCKSIZ+1; i++)
-		bfree(cur_path_inode->di_addr[i]);
-
-	for (i=0; i<dir.size; i+=BLOCKSIZ/(DIRSIZ+4))
-	{
-		block = balloc();
-		cur_path_inode->di_addr[i] = block;
-		/*
-		fseek(fd, DATASTART+block*BLOCKSIZ, SEEK_SET);
-		fwrite(&dir.direct[i], 1, BLOCKSIZ, fd);
-		*/
-		memcpy(disk+DATASTART+block*BLOCKSIZ, &dir.direct[i], BLOCKSIZ);
-	}
-	#endif
-
-	memcpy(disk+DATASTART+cur_path_inode->di_addr[0]*BLOCKSIZ, &dir.direct[0], BLOCKSIZ);  //for a while
-
-	cur_path_inode->di_size = dir.size*(DIRSIZ+4);
-	iput(cur_path_inode); 
+	// read disk inode into memory inode
+	struct inode *inode = iget(dirid); 
 
 	cur_path_inode = inode;
 
 	/*read the change dir from disk*/
-	j=0; 
-
-	for (i=0; i<inode->di_size/BLOCKSIZ+1; i++)
+	// compute upper bound of loop
+	int temp = (inode->di_size%BLOCKSIZ)?1:0;
+	unsigned short j=0;
+	for (int i=0; i<inode->di_size/BLOCKSIZ+temp; i++)
 	{
-		/*
-		fseek(fd, DATASTART+inode->di_addr[i]*BLOCKSIZ, SEEK_SET);
-		fread(&dir.direct[j], 1, BLOCKSIZ, fd);
-		*/
-		memcpy(&dir.direct[j],  disk+DATASTART+inode->di_addr[i]*BLOCKSIZ, BLOCKSIZ);
-		j+=BLOCKSIZ/(DIRSIZ+4);
+		memcpy(&dir.direct[j], disk+DATASTART+inode->di_addr[i]*BLOCKSIZ, BLOCKSIZ);
+		j += BLOCKSIZ/(sizeof(struct direct));
 	}
+		
 
-	//added by xiao
-	dir.size = cur_path_inode->di_size/(DIRSIZ+4);
-	for (i=dir.size; i<DIRSIZ; i++) 
-		dir.direct[i].d_ino = 0; 
+	dir.size = cur_path_inode->di_size/(sizeof(struct direct));
 	
-	//end by xiao
-
 	return;  
 } 
 

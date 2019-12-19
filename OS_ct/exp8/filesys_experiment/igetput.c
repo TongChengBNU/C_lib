@@ -1,9 +1,10 @@
 #include <stdio.h>
 #include "filesys.h"
 
-// functionality: generate a new inode or get a existed inode
+// OK
+// functionality: allocate memory inode
 // input: disk inode id
-// output: a struct inode
+// output: memory inode
 struct inode * iget(dinodeid)
 unsigned int dinodeid;
 {
@@ -11,7 +12,11 @@ unsigned int dinodeid;
 	long addr;
 	struct inode *temp_inode_ptr, *newinode;
 
+	// ---------------------------------------------------------
+	// hash search
+	// NHINO = 128
 	inodeid = dinodeid % NHINO;
+	// global var: hinode
 	if (hinode[inodeid].i_forw == NULL)
 		existed = 0;
 	else
@@ -19,7 +24,7 @@ unsigned int dinodeid;
 		temp_inode_ptr= hinode[inodeid].i_forw; 
 		while (temp_inode_ptr)
 		{
-			// i_ino: disk inode flag
+			// i_ino: disk inode ID
 			if (temp_inode_ptr->i_ino == dinodeid)  //xiao
 			/* existed */
 			{
@@ -33,30 +38,31 @@ unsigned int dinodeid;
 		}
 		// not existed
 	}
+	// --------------------------------------------------------
+
 
 	/* not existed */   
-	/* 1. calculate the addr of dinode in the file sys column*/
+	/* 1. calculate the addr of disk inode */
 	addr = DINODESTART + dinodeid * DINODESIZ;
 
-	/* 2. malloc the new inode*/
+	/* 2. malloc the new memory inode*/
 	newinode = (struct inode *)malloc(sizeof(struct inode));
 
 	/* 3. read the dinode to the inode*/
-	/*
-	fseek(fd, addr, SEEK_SET);
-	fread(&(newinode->di_number), DINODESIZ, 1, fd);
-	*/
 	// disk is a global variable declared in main.c
-	// di_number: ref file count
-	memcpy(&(newinode->di_number), disk+addr, DINODESIZ);
+	// memory inode contain a sub dinode from di_type
+	// could be improved *************************
+	memcpy(&(newinode->di_type), disk+addr, DINODESIZ);
 
 	/* 4. put it into hinode[inodeid] queue*/
-	//???
+	// add the new memory inode at head
+	// free the old memory inode at tail
 	newinode->i_forw = hinode[inodeid].i_forw;
 	newinode->i_back = newinode;
-	if (newinode->i_forw)
-	newinode->i_forw->i_back = newinode;
-	hinode[inodeid].i_forw = newinode; 
+	hinode[inodeid].i_forw = newinode;
+	if(newinode->i_forw)
+		newinode->i_forw->i_back = newinode;
+
 
 	/*5. initialize the inode*/
 	newinode->i_count = 1;
@@ -67,9 +73,10 @@ unsigned int dinodeid;
 }
 
 
-// put away inode??????
+// OK
+// functionality: free memory inode 
 // pinode: ptr inode
-iput(pinode)
+void iput(pinode)
 struct inode *pinode;
 {
 	long addr;
@@ -78,29 +85,25 @@ struct inode *pinode;
 
 	if (pinode->i_count > 1)
 	{
-		// at least 2 filename linking to this inode
+		// 访问计数-1 
 		pinode->i_count--;
 		return;
 	}
 	else
 	{
 		// i_count == 1
-		if (pinode->di_number != 0)
-		{
-			/*write back the inode*/
-			addr = DINODESTART + pinode->i_ino *DINODESIZ;
-			memcpy(disk+addr, &pinode->di_number, DINODESIZ);
-		}
-		else
-		{
-			// no disk block linking to this inode	
-			/*free the inode in the memory*/
+		/*write the memory inode to disk as disk inode */
+		addr = DINODESTART + (pinode->i_ino) * DINODESIZ;
+		memcpy(disk+addr, &pinode->di_type, DINODESIZ);
 
-			addr = DINODESTART + pinode->i_ino *DINODESIZ;
-			memcpy(disk+addr, &pinode->di_number, DINODESIZ);
+		if (pinode->di_number == 0)
+		{
+			// 没有文件与之关联
+			// 释放相应的磁盘索引节点
 			ifree(pinode->i_ino);
-		}
-		
+		}	
+
+		// 释放内存索引节点占用的内存
 		free(pinode);
 	}
 

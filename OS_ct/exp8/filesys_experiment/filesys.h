@@ -1,15 +1,16 @@
 // system open file number
 #define SYSOPENFILE  40
+// number of opened file in user open table
+#define NOFILE   20
+// maxinum number of directory object in global 'dir', corresponding to 4 blocks
 #define DIRNUM 128
 // directory name maximum length
-#define DIRSIZ 12    //xiao 14->12
+#define DIRSIZ 14    //xiao 14->12   tong cheng 12->14
 // password maximum length
 #define PWDSIZ 12
 // password number * sizeof(struct pwd)
 // 32 * (12+2+2) = 2^9 = 512 = BLOCKSIZ
 #define PWDNUM 32
-// number of opened file in user open table
-#define NOFILE   20
 // number of address
 #define NADDR  10
 // number of hash inode
@@ -18,15 +19,15 @@
 
 // block size
 #define BLOCKSIZ 512
-// disk inode size, should be sizeof(struct inode)
-#define DINODESIZ 128 //xiao 32->52 tongcheng 52->128
+// disk inode size, should be sizeof(struct dinode)
+#define DINODESIZ 52 //xiao 32->52 
 
 
 
 
 
 /*di_mode*/
-// disk empty, 
+// disk inode empty, 
 #define DIEMPTY   00000
 // disk file type: binary 0000 0000 0000
 #define DIFILE  00000
@@ -41,20 +42,32 @@
 // no inode
 #define NOINODE -1
 
-#define UDIREAD 00001          /* USER */
-#define UDIWRITE  00002
-#define UDIEXICUTE  00004
-#define GDIREAD   00010  /* GROUP */
+/* USER */
+// 0001 0000 0000
+#define UDIREAD 00400         
+// 0000 1000 0000
+#define UDIWRITE  00200
+// 0000 0100 0000
+#define UDIEXECUTE  00100
+/* GROUP */
+// 0000 0010 0000
+#define GDIREAD   00040      
+// 0000 0001 0000
 #define GDIWRITE  00020
-#define GDIEXICUTE  00040
-#define ODIREAD  00100   /* OTHER */
-#define ODIWRITE 00200
-#define ODIEXICUTE 00400
-
+// 0000 0000 1000
+#define GDIEXECUTE  00010
+/* OTHER */  
+// 0000 0000 0100
+#define ODIREAD  00004   
+// 0000 0000 0010
+#define ODIWRITE 00002
+// 0000 0000 0001
+#define ODIEXECUTE 00001
 
 #define READ  1
 #define WRITE 2
-#define EXICUTE 3
+#define EXECUTE 3
+
 
 /* i_flag */
 #define  IUPDATE  00002
@@ -94,6 +107,8 @@
 //
 // file system super block 文件系统超级块
 struct filsys{
+	/*lock*/
+
 	// block
 	unsigned short  s_isize;   /*i节点块块数*/
 	unsigned long   s_fsize;   /*数据块块数*/
@@ -116,10 +131,12 @@ struct filsys{
 struct inode{
 	struct inode  *i_forw;    // inode forward
 	struct inode  *i_back;    // inode backward
-	char i_flag;             // flag for not update
-	unsigned int  i_ino;     // inode ID, begin at 0 内存i节点标志
+	char i_flag;             //	memory inode lock 
+	unsigned int  i_ino;     // disk inode ID, begin at 0 磁盘i节点标志
 	unsigned int  i_count;   // ref count 访问计数
 
+	// -------------------------------------------------------------
+	unsigned short di_type;    /*文件模式*/ // added by tong cheng
 	unsigned short  di_mode;  // 10 bits access vector 
 	unsigned short  di_number; /*关联文件数*/ 
 	unsigned short  di_uid;   // disk index node user id
@@ -127,32 +144,61 @@ struct inode{
 	unsigned short  di_size;  // size of file 文件大小
 	// NADDR = 10
 	unsigned int   di_addr[NADDR];   // number of physical number /*物理块号*/
-	// DINODESIZ 128 - 75 = 53
-	char options[53];
 };
 
 // disk index node
+// DINODESIZ 52 = 2*6+4*10
 struct dinode{
+	// di_type = DIEMPTY means that the dinode is idle
+	unsigned short di_type; /*文件模式*/ // added by tong cheng
 	unsigned short di_mode; /*存取权限*/
 	unsigned short di_number; /*关联文件数*/
 	unsigned short di_uid;  //ct: disk index node user id
 	unsigned short di_gid;  //ct: disk index node group id
 	unsigned short di_size;  /*文件大小*/
-	unsigned int di_addr[NADDR];   /*物理块号*/
+	unsigned int di_addr[NADDR];   /*物理块(数据块)号*/
+	                               /*存取修改建立时间*/
 };
 
 // directory object 目录项
 // size: 16
+// every block(512) could have 32 directory object
 struct direct{
 	char d_name[DIRSIZ];  // directory name
-	unsigned int d_ino;   // inode ID
+	unsigned short d_ino;   // disk inode ID
 };
 
 // directory 目录
+// dir has at most DIRNUM:128 directory object
+// a dir could have 4(128/32) data block
 struct dir{
 	struct direct direct[DIRNUM];
 	int size;  /*当前目录大小*/
 };
+
+// system open table element
+// SYSOPENFILE: 40
+struct file{
+	unsigned short f_mode;           /*file descriptor 文件操作标志*/
+	unsigned int f_count;  /*访问计数, 共享进程数*/
+	unsigned long f_off;   /* read/write pointer*/ /*每个进程在该文件的读写位置*/
+	struct inode *f_inode; /*指向内存i节点*/
+	                       /*访问标志*/
+};
+
+// user open table
+// usually 20 files
+struct user{
+	// 文件描述符fd
+	// 系统打开表的入口指针fp
+	// least 9 bits
+	unsigned short u_default_mode;
+	unsigned short u_uid;
+	unsigned short u_gid;
+	// NOFILE: 20
+	unsigned short u_ofile[NOFILE];   /*用户打开文件表*/
+};
+
 
 
 // password
@@ -168,22 +214,7 @@ struct hinode{
 	struct inode *i_forw;   /*HASG表指针*/
 };
 
-// system open table element
-struct file{
-	char f_flag;    /*文件操作标志*/
-	unsigned int f_count;  /*引用计数*/
-	struct inode *f_inode; /*指向内存i节点*/
-	unsigned long f_off;   /*read/write character pointer*/
-};
 
-// user open table
-struct user{
-	// least 9 bits
-	unsigned short u_default_mode;
-	unsigned short u_uid;
-	unsigned short u_gid;
-	unsigned short u_ofile[NOFILE];   /*用户打开文件表*/
-};
 // -----------------------------------------------
 
 
@@ -233,7 +264,7 @@ extern void ifree();
 //extern unsigned int namei();
 extern int namei();
 // search files under current directory
-extern unsigned short iname();
+extern int iname();
 
 // defined in access.c
 // access control

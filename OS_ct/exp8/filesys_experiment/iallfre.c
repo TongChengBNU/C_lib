@@ -1,32 +1,43 @@
 #include <stdio.h>
 #include "filesys.h"
 
-static struct dinode block_buf[BLOCKSIZ/DINODESIZ];
+//static struct dinode block_buf[BLOCKSIZ/DINODESIZ];
 
-// generate a inode while updating system super block
+// Ok?????????
+// functionality: allocate disk inode
+// output: 
 struct inode * ialloc()
 {
+	// what if there is no inode available?????????
 	struct inode *temp_inode;
 	unsigned int cur_di;
 	int i,count, block_end_flag;
 
 	/* s_inode full */
+	// NICINOD: 50
 	if (filsys.s_pinode == NICINOD)  
 	{
+		// stack empty, need to update stack using new disk inode number 
 		i=0; 
 		count = 0;
 		block_end_flag = 1; 
 		filsys.s_pinode = NICINOD-1;
+		// begin of next group
 		cur_di = filsys.s_rinode;
-		//while ((count < NICINOD) || (count <=filsys.s_ninode))  by xiao
+		for(i=0; i<NICINOD; i++)
+		{
+			filsys.s_inode[i] = i+cur_di;
+		}
+		filsys.s_rinode += NICINOD;
+
+
+
+		// comment by tong cheng
+		/*
 		while ((count < NICINOD) && (count <= filsys.s_ninode))
 		{
 			if (block_end_flag)
 			{ 
-				/*
-				fseek(fd, DINODESTART + cur_di*DINODESIZ, SEEK_SET);
-				fread(block_buf, 1, BLOCKSIZ, fd);
-				*/
 				memcpy(block_buf, disk+DINODESTART + cur_di*DINODESIZ, BLOCKSIZ);
 				block_end_flag = 0;
 				i = 0;
@@ -50,19 +61,50 @@ struct inode * ialloc()
 			}
 			
 		}
-		filsys.s_rinode = cur_di;
+
+		filsys.s_rinode = cur_di; */
 	}
 
 	unsigned int inode_ino = filsys.s_inode[filsys.s_pinode];
 	temp_inode = iget(inode_ino);
-	// write new inode into disk
+	// temp_inode sub disk inode is null
+	// write back to achieve consistency
 	memcpy(disk+DINODESTART+inode_ino*DINODESIZ,
-	             &temp_inode->di_number, sizeof(struct dinode));
+	             &temp_inode->di_type, sizeof(struct dinode));
 	filsys.s_pinode ++;
 	filsys.s_ninode --;   
 	filsys.s_fmod = SUPDATE; 
 	return temp_inode;
 } 
+
+// Ok
+// functionality: free disk inode
+void ifree(unsigned int dinodeid)
+{
+	// increment the number of idle disk inode
+	filsys.s_ninode ++;
+
+	if (filsys.s_pinode != 0) 
+	{
+		// idle stack not full
+		filsys.s_pinode--;
+		filsys.s_inode[filsys.s_pinode] = dinodeid;
+	}
+	else   
+	{
+		printf("idle stack full");
+		// idle stack full
+		
+	}
+}
+
+
+
+
+
+
+
+
 
 /*
 ifree(dinodeid)
@@ -84,33 +126,6 @@ unsigned int dinodeid;   //xiao
 	}
 }
  */
-
-void ifree(unsigned int dinodeid)
-{
-	filsys.s_ninode ++;
-	if (filsys.s_pinode != NICINOD)         /*not null*/
-	{
-		filsys.s_inode[filsys.s_pinode] = dinodeid;
-		filsys.s_pinode++;
-	}
-	else   /*full*/
-	{
-		if (dinodeid < filsys.s_rinode)
-		{
-			filsys.s_inode[NICINOD] = dinodeid;
-			filsys.s_rinode = dinodeid;
-		}
-	}
-}
-
-
-
-
-
-
-
-
-
 
 
 

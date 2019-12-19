@@ -17,7 +17,9 @@ int main()
 	int *b;
 	char buffer[10] = "Hello";
 	char name[10];
-	strcpy(name, buffer);
+	//strcpy(name, buffer);
+	//memcpy(name, buffer, 10);
+	memset(name, 0x00, 10);
 	printf("%s %s", buffer, name);
 
 

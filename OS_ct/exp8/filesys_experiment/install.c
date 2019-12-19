@@ -4,6 +4,7 @@
 
 // OK
 // functionality: init some memory var
+// like hinode, sys_ofile, user
 void install()
 {
 	int i,j;
@@ -27,7 +28,9 @@ void install()
 		user[i].u_uid = 0;
 		user[i].u_gid = 0;
 		for (j=0; j<NOFILE; j++)
-			user[i].u_ofile[j] = SYSOPENFILE+1;
+			// the value in u_ofile is the index in sys_ofile
+			// so init the value as SYSOPENFILE could identify that 这个表项是空的，因为自然越界
+			user[i].u_ofile[j] = SYSOPENFILE;
 	}
 
 	// 5. read the main directory to initialize the 'dir'

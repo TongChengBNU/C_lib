@@ -1,10 +1,11 @@
 #include <stdio.h>
 #include "filesys.h"
 
+// 90%
+// 实现成组链接法
 //-----------------------------------------
 // Functionality:
 // init password array buffer;
-//
 // init system super block;
 //-----------------------------------------
 void format()
@@ -63,13 +64,16 @@ void format()
 	 * and the file password */
 
 	// 0 inode for deleting link
+	// for what ?????????
 	inode = iget(0);   /* 0 empty dinode id*/
-	inode->di_mode = 0;  // to be modified...
+	inode->di_type = 100;  // empty dinode
+	inode->di_number = 1;
 	iput(inode);
 
 	// inode 1#: main dir
 	inode = iget(1);   
 	inode->di_mode = DEFAULTMODE | DIDIR;
+	// 关联文件为 /
 	inode->di_number = 1;
 	inode->di_size = 3*sizeof(struct direct);
 	// block 0# is used by the main directory
@@ -83,6 +87,7 @@ void format()
 	dir_buf[2].d_ino = 2;
 
 	// write content into block 0#
+	// put 3 element in direct buffer into disk
 	memcpy(disk+DATASTART, dir_buf, 3*(sizeof(struct direct)));
 	iput(inode);
 
@@ -90,6 +95,7 @@ void format()
 	// inode 2#: etc dir 
 	inode = iget(2); 
 	inode->di_mode = DEFAULTMODE | DIDIR;
+	// 关联文件为 etc
 	inode->di_number = 1;
 	inode->di_size = 3*sizeof(struct direct);
 	// block 1# is used by the etc directory
@@ -110,6 +116,7 @@ void format()
 	// inode 3#: password dir 
 	inode = iget(3); 
 	inode->di_mode = DEFAULTMODE | DIFILE;
+	// 关联文件为 password
 	inode->di_number = 1;
 	inode->di_size = BLOCKSIZ;
 	// block 2# is used by the password file
@@ -127,9 +134,9 @@ void format()
 	// passwd is a global array
 	memcpy(disk+DATASTART+BLOCKSIZ*2, passwd, BLOCKSIZ);
 
-	// added by Tong Cheng
-	// may be not necessary for a real file system
-	// data in 'pwd' is redundancy
+	
+	// put buffer passwd into memory variable pwd for easy access
+	// maybe a redundancy
 	memcpy(pwd, passwd, 32*sizeof(struct pwd));
 
 	iput(inode);
@@ -153,6 +160,8 @@ void format()
 	filsys.s_nfree = FILEBLK - 3;
 	// set ptr of idle block
 	filsys.s_pfree = 0;	
+	// 成组链接法
+	// to be continued??????????????? 
 	// set stack of idle block
 	for(i=0; i<NICFREE; i++)
 	{
@@ -178,7 +187,7 @@ void format()
 
   
 
-	// write file super block into second block within disk
+	// write filesys in memory into second block within disk
 	memcpy(disk+BLOCKSIZ, &filsys, sizeof(struct filsys));
 
 

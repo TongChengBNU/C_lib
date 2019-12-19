@@ -2,6 +2,7 @@
 #include "filesys.h"
 
 
+// input: fd-file descriptor, buf-buffer, size
 unsigned int read(int fd, char *buf, unsigned int size)
 {
 	unsigned long off;
@@ -9,6 +10,7 @@ unsigned int read(int fd, char *buf, unsigned int size)
 	struct inode *inode;
 	char *temp_buf;
 
+	// user_id is a global var, meaning current user index in user
 	inode = sys_ofile[user[user_id].u_ofile[fd]].f_inode;
 	if (!(sys_ofile[user[user_id].u_ofile[fd]].f_flag & FREAD))
 	{
@@ -71,6 +73,7 @@ unsigned int read(int fd, char *buf, unsigned int size)
 }
 
 
+// input: fd-file descriptor, buf-buffer, size
 unsigned int write(int fd, char *buf, unsigned int size)
 {
 	unsigned long off;

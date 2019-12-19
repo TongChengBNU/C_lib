@@ -21,15 +21,16 @@ struct file sys_ofile[SYSOPENFILE];
 struct filsys filsys;
 // passwd container
 struct pwd pwd[PWDNUM];
-// user container
+// user open table container
 struct user user[USERNUM];
 
 struct file *fd;   //xiao
 // current path inode
 struct inode *cur_path_inode;
+// index of current user in user array
 int user_id;
 
-// disk space: super block, inode block, data block 
+// disk space: boot block, super block, inode block, data block 
 char disk[(2+DINODEBLK+FILEBLK)*BLOCKSIZ];
 
 void interactive_mode();
@@ -40,8 +41,9 @@ int main()
 	printf("\nFormat the disk \n");
     format();
 	install();
-	_dir();
+	//_dir();
 
+	interactive_mode();
 	//struct direct *tmp;
 	//tmp = (struct direct *)(disk+DATASTART);
 	//memcpy(tmp, disk+DATASTART, sizeof(struct direct));
