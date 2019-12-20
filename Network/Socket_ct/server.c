@@ -11,7 +11,8 @@
 #include <unistd.h>
 #include <pthread.h>
 #include <time.h>
-#include <wait.h>
+// if on Mac-OS, comment this header file
+//#include <wait.h>
 #include <signal.h>
 
 // why 65535 ? 
