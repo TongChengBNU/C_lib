@@ -5,8 +5,40 @@
  */
 
 #include "test.h"
+#include <stdio.h>
+
+void
+testprog_1(char *host)
+{
+	CLIENT *clnt;
+	char * *result_1;
+	char * test_1_arg;
+
+	test_1_arg = (char *)malloc(128);
+	#ifndef DEBUG
+	clnt = clnt_create (host, TESTPROG, VERSION, "udp");
+	if (clnt == NULL) {
+	clnt_pcreateerror (host);
+	exit (1);
+	}
+	#endif /* DEBUG */
+
+	result_1 = test_1(&test_1_arg, clnt);
+	if (result_1 == (char **) NULL) {
+	clnt_perror (clnt, "call failed");
+	}
+	if (strcmp(*result_1, "Error") == 0) {
+	fprintf(stderr, "%s: could not get the time/n", host);
+	exit(1);
+	}
+	printf("收到消息 ... %s/n", *result_1);
+	#ifndef DEBUG
+	clnt_destroy (clnt);
+	#endif /* DEBUG */
+}
 
 
+/*
 void
 testprog_1(host)
 char *host;
@@ -25,7 +57,7 @@ char *host;
 	}
 	clnt_destroy( clnt );
 }
-
+*/
 
 main(argc, argv)
 int argc;

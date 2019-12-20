@@ -5,11 +5,14 @@
  */
 
 #include "test.h"
+#include <time.h>
+#include <stdio.h>
 
-char **
-test_1(argp, rqstp)
+//char **
+char ** test_1_svc(argp, rqstp)
 	char **argp;
 	struct svc_req *rqstp;
+// CLIENT *rqstp;
 {
 
 	static char * result;
@@ -17,6 +20,16 @@ test_1(argp, rqstp)
 	/*
 	 * insert server code here
 	 */
+	static char tmp_char[128];
+	time_t rawtime;
+
+	if( time(&rawtime) == ((time_t)-1) ) {
+		strcpy(tmp_char, "Error");
+		result = tmp_char;
+		return &result;
+	}
+	sprintf(tmp_char, "服务器当前时间是 :%s", ctime(&rawtime));
+	result = tmp_char;
 
 	return(&result);
 }
