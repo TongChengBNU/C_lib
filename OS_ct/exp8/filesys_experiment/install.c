@@ -41,7 +41,7 @@ void install()
 	for (i=0; i<DIRNUM; i++)
 	{
 		strcpy(dir.direct[i].d_name, "            ");
-		dir.direct[i].d_ino = 0;
+		dir.direct[i].d_ino = NOINODE;
 	}
  
 	// read main dir from block #0

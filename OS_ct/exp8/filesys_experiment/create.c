@@ -1,33 +1,33 @@
 #include <stdio.h>
 #include "filesys.h"
 
-// 90% find the to be continued;
-// input: user_id-index of user in global 'user', filename, mode-access mode 9 bits
+// Ok
+// input: uid, filename, mode-access mode 9 bits
 // output: file descriptor, also index of user open table -- u_ofile
-unsigned short create(unsigned int user_id, char *filename, unsigned short mode)
+index_t create(uid_t uid, char *filename, unsigned short mode)
 {
 	struct inode *inode;
-	// j: index of memory var user, which matching user_id
+	// j: index of memory var user, which matching uid
 	int i,j;
-	// index in user matching user_id
+	// index in user matching uid
 	int user_sen;
 
-	// linearly search user_id
+	// linearly search uid
 	// return user_sen
 	for (j=0; j<USERNUM; j++)   
-		if (user[j].u_uid == user_id) 
+		if (user[j].u_uid == uid) 
 			break;
 	if (j == USERNUM)
 	{
-		printf("\n have no correspond user_id.\n ");
-		return -1;
+		printf("\nNo correspond uid.\n ");
+		return NOINDEX;
 	}
 	user_sen = j;
 
 
 	// map filename into disk inode index
-	di_ino = namei(filename);
-	if (di_ino != -1)   
+	int di_ino = namei(filename);
+	if (di_ino != NOINODE)   
 	{
 		/*already existed*/
 
@@ -38,7 +38,7 @@ unsigned short create(unsigned int user_id, char *filename, unsigned short mode)
 		{
 			iput(inode);
 			printf("\nCreate access denied;\n");
-			return -1;
+			return NOINDEX;
 		}
 
 		/* free all the block of the old file */
@@ -47,15 +47,14 @@ unsigned short create(unsigned int user_id, char *filename, unsigned short mode)
 
 
 		// ---------------------------
-		// to be continued
-		/* to do: add code here to update the pointer of the sys_ofile*/
 		for (i=0; i<SYSOPENFILE; i++)
 			if (sys_ofile[i].f_inode == inode)
 				sys_ofile[i].f_off = 0;
 
 		for (i=0; i<NOFILE; i++)
 		{
-			if (user[user_sen].u_ofile[i] == SYSOPENFILE+1)
+			// u_ofile[X] was inited as SYSOPENFILE
+			if (user[user_sen].u_ofile[i] == SYSOPENFILE)
 			{
 				user[user_sen].u_uid = inode->di_uid;
 				user[user_sen].u_gid = inode->di_gid;
@@ -64,7 +63,7 @@ unsigned short create(unsigned int user_id, char *filename, unsigned short mode)
 					if (sys_ofile[j].f_count == 0)   //xiao
 					{
 						user[user_sen].u_ofile[i] = j;
-						sys_ofile[j].f_flag = mode;
+						sys_ofile[j].f_mode = mode;
 					}
 
 				return j;
@@ -77,6 +76,12 @@ unsigned short create(unsigned int user_id, char *filename, unsigned short mode)
 		unsigned int dir_ith, di_ino;
 	    /*not existed before*/
 		inode = ialloc();
+
+		for(int i=0; i<NADDR; i++)
+		{
+			inode->di_addr[i] = NOINDEX;
+		}
+
 		// 'dir_ith' is the index of an idle directory object in current dir
 		// should be iname, not namei
 		dir_ith = iname(filename);
@@ -89,7 +94,8 @@ unsigned short create(unsigned int user_id, char *filename, unsigned short mode)
 		inode->di_uid = user[user_sen].u_uid;
 		inode->di_gid = user[user_sen].u_gid; 
 		inode->di_size = 0;
-		inode->di_number = 0;
+		// 关联文件为新建的这个文件
+		inode->di_number = 1;
 
 		// search system open table where f.count = 0
 		// 访问计数为0, 说明该表项为空

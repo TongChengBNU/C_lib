@@ -24,7 +24,7 @@ struct pwd pwd[PWDNUM];
 // user open table container
 struct user user[USERNUM];
 
-struct file *fd;   //xiao
+struct file *fd;  
 // current path inode
 struct inode *cur_path_inode;
 // index of current user in user array
@@ -137,6 +137,11 @@ void interactive_mode()
 	unsigned short uid;
 	char passwd[PWDSIZ], dirname[DIRSIZ];
 	char *filename = dirname;
+	fd_t fd=-1;
+	status_t status;
+	char buffer[1024];
+	unsigned int size;
+	
 
 	// login
 	printf("Welcome to memory file system! Please log in -- \n");
@@ -161,9 +166,13 @@ void interactive_mode()
 	// operation
 	while(1)
 	{
+
 		printf("Please select an option below:\n");
-		printf("1. dir; 2. change dir; 3. makefile; 4. makedir; 5. Delete file 6. logout \n");
-		num_option = 6;
+		printf("Current file descriptor: %d\n", fd);
+		printf("1. dir; 2. change dir; 3. makefile; 4. makedir; 5. Delete file 6. logout and halt\n");
+		printf("7. Open; 8. Close; 9. Read; 10. Write;\n");
+		printf("11. Show sys open table; 12. Show user open table;\n");
+		num_option = 12;
 		scanf("%hd", &option);
 		while(option<1 || option > num_option){
 			printf("Option error! Please input again;\n");
@@ -185,7 +194,7 @@ void interactive_mode()
 			case 3:
 				printf("New file name: ");
 				scanf("%s", filename);
-				create(uid, filename, 0777);
+				fd = create(uid, filename, 01777);
 				putchar('\n');
 				break;
 			case 4:
@@ -200,11 +209,54 @@ void interactive_mode()
 				delete(filename);
 				putchar('\n');
 				break;
-
 			case 6:
 				logout(uid);
 				halt();
 				exit(0);
+				break;
+			case 7:
+				printf("Open filename: ");
+				scanf("%s", filename);
+				fd = open(uid, filename, FAPPEND);
+				printf("Open success\n");
+				putchar('\n');
+				break;
+			case 8:
+				printf("Close filename: ");
+				scanf("%s", filename);
+				status = close(uid, fd);
+				if(status)
+					printf("Close success\n");
+				else
+					printf("Close error\n");
+				putchar('\n');
+				break;
+			case 9:
+				printf("Read size: ");
+				scanf("%d", &size);
+				unsigned short mark = read(fd, buffer, size);
+				printf("Read %d bytes;\n", mark);
+				if(mark)
+					printf("Content: %s\n", buffer);
+				putchar('\n');
+				break;
+			case 10:
+				printf("Write size: ");
+				scanf("%d", &size);
+				printf("Write content: ");
+				memset(buffer, 0x00, 1024);
+				scanf("%s", buffer);
+				mark = write(fd, buffer, size);
+				printf("Write %d bytes;\n", mark);
+				putchar('\n');
+				break;
+			case 11:
+				show_sys_open_table();
+				putchar('\n');
+				break;
+			case 12:
+				show_user_open_table();
+				putchar('\n');
 				break;
 			default:
 				break;
@@ -213,5 +265,46 @@ void interactive_mode()
 
 
 
+	return;
+}
+
+
+
+
+void show_sys_open_table()
+{
+	printf("index f_count offset inode ID\n");
+	for(int i=0; i<SYSOPENFILE; i++)
+	{
+		if(sys_ofile[i].f_count)
+		{
+			printf("%10d%10d%10ld%10d\n", i, sys_ofile[i].f_count, sys_ofile[i].f_off, sys_ofile[i].f_inode->i_ino);
+		}
+	}
+	return;
+}
+
+void show_user_open_table(uid_t uid)
+{
+	int j, user_sen;
+	for(j=0; j<USERNUM; j++)
+	{
+		if(user[j].u_uid == uid)
+			break;
+	}
+	if(j == USERNUM)
+	{
+		printf("User with uid:%d not found!", uid);
+		return;
+	}
+	user_sen = j;
+	printf("fd ptr\n");
+	for(int i=0; i<NOFILE; i++)
+	{
+		if(user[user_sen].u_ofile[i] != SYSOPENFILE)
+		{
+			printf("%5d%5d\n", i, user[user_sen].u_ofile[i]);
+		}
+	}
 	return;
 }

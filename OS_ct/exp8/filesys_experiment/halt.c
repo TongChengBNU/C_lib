@@ -2,46 +2,48 @@
 #include "filesys.h"
 
 
+// Ok
+// functinality: free sys_ofile and user, write back super block and say GOODBYE
 void halt()
 {
-	struct inode *inode;
 	int i,j;
 
-	/*1. write back the current dir */
-	chdir("..");
+	/*1. write back the current inode */
 	iput(cur_path_inode);
 
-	/*2. free the u_ofile and sys_ofile and inode*/
+
+	/*2. free sys_ofile and user */
+	for (i=0; i<SYSOPENFILE; i++)
+	{
+		if(sys_ofile[i].f_count != 0)
+		{
+			sys_ofile[i].f_count = 0;
+			iput(sys_ofile[i].f_inode);
+		}
+	}
+
 	for (i=0; i<USERNUM; i++)
 	{
 		if (user[i].u_uid != 0)
 		{
 			for (j=0; j<NOFILE;j++)
 			{
-				if (user[i].u_ofile[j] != SYSOPENFILE + 1)
+				if (user[i].u_ofile[j] != SYSOPENFILE)
 				{
-					//close(user[i].u_ofile[j]);
-					close(user[i].u_uid, user[i].u_ofile[j]); // modified by Tong Cheng
-					user[i].u_ofile[j] = SYSOPENFILE + 1;
+					// j is the file descriptor
+					close(user[i].u_uid, j);
+					user[i].u_ofile[j] = SYSOPENFILE;
 				}
 			}
 		}
 	}
 
-	/*3. write back the filesys to the disk*/
-	/*
-	fseek(fd, BLOCKSIZ, SEEK_SET);
-	fwrite(&filsys, 1, sizeof(struct filsys), fd);
-	*/
+	// write back the filesys to the disk
 	memcpy(disk+BLOCKSIZ, &filsys, sizeof(struct filsys));
 
-	/*4. close the file system column*/
-	//fclose(fd);
-
-	/*5. say GOOD BYE to all the user*/
+	// say GOOD BYE to all the user
 	printf("\nGood Bye. See You Next Time. Please turn off the switch\n");
 	exit(0);
-	
 }
 
 

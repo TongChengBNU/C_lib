@@ -40,7 +40,7 @@
 #define DEFAULTMODE 00777
 
 // no inode
-#define NOINODE -1
+#define NOINODE 0
 
 /* USER */
 // 0001 0000 0000
@@ -73,10 +73,10 @@
 #define  IUPDATE  00002
 
 
-/* f_flag */
-#define FREAD   00001
-#define FWRITE   00002
-#define FAPPEND   00004
+/* f_mode */
+#define FREAD   00400
+#define FWRITE   00200
+#define FAPPEND   00200
 
 /* error */
 #define DISKFULL  65535
@@ -101,6 +101,20 @@
 #define DATASTART  ((2+DINODEBLK)*BLOCKSIZ)     /*d:17408    0x4400*/
 /* s_fmod */
 #define SUPDATE  00001 
+//--------------------------------------------------------------
+//
+typedef unsigned int uid_t;
+typedef short status_t;
+#define SUCCESS 1
+#define ERROR 0
+typedef int index_t;
+#define NOINDEX -1
+typedef unsigned short fd_t;  /* file descriptor type */
+//
+//
+//
+//
+// ----------------------------------------------------------
 
 // -----------------------------------------------
 // PREDEFINED STRUCT 
@@ -156,7 +170,7 @@ struct dinode{
 	unsigned short di_uid;  //ct: disk index node user id
 	unsigned short di_gid;  //ct: disk index node group id
 	unsigned short di_size;  /*文件大小*/
-	unsigned int di_addr[NADDR];   /*物理块(数据块)号*/
+	index_t di_addr[NADDR];   /*物理块(数据块)号*/
 	                               /*存取修改建立时间*/
 };
 
@@ -249,7 +263,7 @@ extern void iput();
 
 // defined in ballfre.c 
 // disk block allocation
-extern unsigned int balloc();
+extern index_t balloc();
 // disk block free
 extern void bfree();
 
@@ -281,11 +295,14 @@ extern void chdir();
 
 // defined in open.c
 // open file
-extern unsigned short open(int user_id, char *filename, unsigned short openmode);
+extern index_t open(uid_t uid, char *filename, unsigned short openmode);
+// defined in close.c
+// close file
+extern status_t close(uid_t uid, unsigned short cfd);
 
 // defined in create.c
 // create file
-extern unsigned short create(unsigned int user_id, char *filename, unsigned short mode);
+extern index_t create(uid_t uid, char *filename, unsigned short mode);
 
 // defined in rdwt.c
 // read file
@@ -295,10 +312,10 @@ extern unsigned int write();
 
 // defined in log.c
 // log into filesystem
-extern int login(unsigned short uid, char *passwd);
+extern int login(uid_t uid, char *passwd);
 // log out filesystem
 //extern void logout();
-extern int logout(unsigned short uid);
+extern int logout(uid_t uid);
 
 // defined in install.c
 // enter into filesystem
@@ -310,9 +327,6 @@ extern void format();
 // may be not used in main.c???
 //extern void memcpy();
 
-// defined in close.c
-// close file
-extern void close(unsigned int user_id, unsigned short cfd);
 // defined in halt.c
 // exit the whole file system
 extern void halt();
@@ -321,5 +335,5 @@ extern void halt();
 extern void delete();
 
 
-
+extern unsigned int size_to_block_num(unsigned int size);
 

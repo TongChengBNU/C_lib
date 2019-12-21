@@ -22,7 +22,7 @@ void _dir()
 			// 1. name
 			printf("%-14s", dir.direct[i].d_name); 
 
-			// 2. inode number
+			// 2. read disk inode into memory inode
 			temp_inode = iget(dir.direct[i].d_ino);
 			printf("inodex_ino:%d ", temp_inode->i_ino);
 			//printf("inodex_ino:%d ", dir.direct[i].d_ino);
@@ -64,8 +64,8 @@ void _dir()
 				printf(" %-5d ", temp_inode->di_size);
 				// show numbers of disk block this file occupies
 				printf("Disk block chain:"); 
-
-				for (k=0; k<temp_inode->di_size/BLOCKSIZ+1; k++)
+				int temp = ((temp_inode->di_size % BLOCKSIZ)?1:0);
+				for (k=0; k<(temp_inode->di_size/BLOCKSIZ)+temp; k++)
 					printf("%3d", temp_inode->di_addr[k]);
 				printf("\n");
 			}
@@ -77,6 +77,7 @@ void _dir()
 			iput(temp_inode);
 		} 
 	}
+
 	return;
 }
 
@@ -94,7 +95,7 @@ void mkdir(char *dirname)
 
 	// if dirid = -1, then dirname not found;
 	// if dirname found, either a directory or file
-	if (dirid != -1)
+	if (dirid != NOINODE)
 	{
 		inode = iget(dirid);
 		// dir: 001X XXXX XXXX
@@ -141,6 +142,37 @@ void mkdir(char *dirname)
 
 	iput(inode);
 
+
+	// 更新当前目录的磁盘数据
+	// 先写后读, 写的时候注意尾部数据，因为内存变量超出读取，会内存访问出错；但读的时候，因为空间已经预分配，因此可以整块读取
+	// 当前目录的内容写入相应数据块
+	inode = iget(namei("."));
+	// 计算当前目录需要多少个盘块
+	int i=0;
+	int temp = ((dir.size * (sizeof(struct direct))) % BLOCKSIZ)?1:0;
+	unsigned short block_num_need = (dir.size * (sizeof(struct direct))) / BLOCKSIZ + temp;
+	unsigned short block_num_exist = (inode->di_size / BLOCKSIZ) + (inode->di_size % BLOCKSIZ > 0)?1:0;
+	if(block_num_exist < block_num_need)
+	{
+		unsigned short block_num_start = block_num_exist;	
+		for(i=0; i<(block_num_need - block_num_exist); i++)
+		{
+			inode->di_addr[block_num_start+i] = balloc();
+		}
+		// 补充物理块完毕
+	}
+	unsigned short j=0;
+	for(i=0; i<block_num_need-1; i++)
+	{
+		memcpy(disk+DATASTART+inode->di_addr[i]*BLOCKSIZ, &dir.direct[j], BLOCKSIZ);
+		j += (BLOCKSIZ)/(sizeof(struct direct));
+	}
+	// 处理数据尾部
+	memcpy(disk+DATASTART+inode->di_addr[i]*BLOCKSIZ, &dir.direct[j], (sizeof(struct direct))*(dir.size-j));
+	inode->di_size = dir.size * (sizeof(struct direct));
+	// free memory inode
+	iput(inode);
+
 	return;
 }
 
@@ -149,30 +181,52 @@ void mkdir(char *dirname)
 // input: name to change to 
 void chdir(char *dirname)
 {
+	struct inode *inode;
 	// search dir
 	int dirid = namei(dirname);
-	if (dirid == -1)
+	if (dirid == NOINODE)
 	{
 		printf("\n%s does not existed\n", dirname);
 		return;
 	} 
-	// read disk inode into memory inode
-	struct inode *inode = iget(dirid); 
+	
+	// 当前内存节点释放
+	//iput(cur_path_inode);
 
+	int temp, j, i;
+	unsigned short block_num_need;
+
+	// 新目录读入dir
+	// read disk inode into memory inode
+
+	inode = iget(dirid); 
 	cur_path_inode = inode;
 
+	printf("\ndirid: %d   size: %d\n", dirid, inode->di_size);
+	printf("cur: %d\n", cur_path_inode->i_ino);
+
 	/*read the change dir from disk*/
+	// 确定目录数据是否为整块
 	// compute upper bound of loop
-	int temp = (inode->di_size%BLOCKSIZ)?1:0;
-	unsigned short j=0;
-	for (int i=0; i<inode->di_size/BLOCKSIZ+temp; i++)
+	temp = (inode->di_size % BLOCKSIZ)?1:0;
+	j=0;
+	block_num_need = (inode->di_size/BLOCKSIZ) + temp;
+	for (i=0; i<block_num_need; i++)
 	{
 		memcpy(&dir.direct[j], disk+DATASTART+inode->di_addr[i]*BLOCKSIZ, BLOCKSIZ);
 		j += BLOCKSIZ/(sizeof(struct direct));
 	}
 		
 
-	dir.size = cur_path_inode->di_size/(sizeof(struct direct));
+	printf("\n Read success;\n");
+	dir.size = (cur_path_inode->di_size)/(sizeof(struct direct));
+	printf("dir size: %d\n", dir.size);
+
+	for(i=0;i<4;i++)
+	{
+		printf("%s\n", dir.direct[i].d_name);
+	}
+	
 	
 	return;  
 } 

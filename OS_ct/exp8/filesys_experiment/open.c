@@ -1,88 +1,90 @@
 #include <stdio.h>
 #include "filesys.h"
 
-unsigned short open(int user_id, char *filename, unsigned short openmode)
+// Ok
+// functionality: open a file
+// input: uid, filename, openmode
+// output:
+// return file descriptor, which is the index of struct user.u_ofile
+// or NOINDEX
+index_t open(uid_t uid, char *filename, unsigned short openmode)
 {
-	unsigned int dinodeid;
-	struct inode *inode;
 	int i,j;
-	int user_sen;
 
-	//added by xiao user_id-->user_sen
-	for (j=0; j<USERNUM; j++)   //xiao
-		if (user[j].u_uid == user_id) 
+	// --------------------------------------
+	// search user to match uid
+	// user_sen is the index of struct user
+	int user_sen;
+	for (j=0; j<USERNUM; j++)
+		if (user[j].u_uid == uid) 
 			break;
 	if (j == USERNUM)
 	{
-		printf("\n have no correspond user_id.\n ");
-		return NULL;
+		printf("\nUser with uid:%d does not exist!\n ", uid);
+		return NOINDEX;
 	}
 	user_sen = j;
-	//end by xiao
 
+
+	unsigned int dinodeid;
 	dinodeid = namei(filename);
-	if (dinodeid == NULL)    /*  no such file */  //xiao
+	if (dinodeid == NOINODE)   
 	{
-		printf("\nfile does not existed!!!\n");
-		return NULL;
+		printf("\nFile %s does not exist!\n", filename);
+		return NOINDEX;
 	}
  
+	// filename exist
+	// allocate memory inode
+	struct inode *inode;
 	inode = iget(dinodeid);
-#if 0
-	if (!access(user_id, inode, openmode))     /*access denied*/
-	{
-		printf("\nfile open has not access!!!\n");
-		iput(inode);
-		return NULL;
-	}
-#endif
 	
 
-	/*alloc the sys_ofile item*/
-	for (i=0; i<SYSOPENFILE; i++)   //xiao  i=1-->i=0
+	// alloc the sys_ofile item
+	for (i=0; i<SYSOPENFILE; i++) 
 		if (sys_ofile[i].f_count == 0)
 			break;
 
 	if (i == SYSOPENFILE)
 	{
-		printf("\nsystem open file too much\n");
+		printf("\nSystem open table is full!\n");
 		iput(inode);
-		return NULL;
+		return NOINDEX;
 	}
-
-	sys_ofile[i].f_inode = inode;
-	sys_ofile[i].f_flag = openmode;
-	sys_ofile[i].f_count = 1;
-
-	if (openmode & FAPPEND)
-		sys_ofile[i].f_off = inode->di_size;
-	else
-		sys_ofile[i].f_off = 0;
-
-	/*alloc the user open file item*/
+	
+	// alloc the user open file item
 	for (j=0; j<NOFILE; j++)
-		if (user[user_sen].u_ofile[j] == SYSOPENFILE+1)  //xiao
+		// u_ofile == SYSOPENFILE means null pointer
+		if (user[user_sen].u_ofile[j] == SYSOPENFILE) 
 			break;
 
 	if (j == NOFILE)  
 	{
-		printf("\nuser open file too much!!!\n");
-		sys_ofile[i].f_count = 0;
+		printf("\nUser open table is full!\n");
 		iput(inode);
-		return NULL;
+		return NOINDEX;
 	}
 
-	user[user_sen].u_ofile[j] = i;  //xiao
+	// 系统打开表和用户打开表均有空闲条目，进行更新
 
-	/*if APPEND, free the block of the file before*/
+	// i is the index of idle object in system open table
+	sys_ofile[i].f_inode = inode;
+	sys_ofile[i].f_mode = openmode;
+	// 进程访问计数加１
+	sys_ofile[i].f_count += 1;
+
+	// 如果是追加内容，那么文件偏移等于当前文件大小
 	if (openmode & FAPPEND)
-	{/*
-		for (i=0; i<inode->di_size/BLOCKSIZ+1; i++)
-			bfree(inode->di_addr[i]);
-		inode->di_size = 0;*/
-	}
+		sys_ofile[i].f_off = inode->di_size;
+	else
+	// 否则，从头开始
+		sys_ofile[i].f_off = 0;
 
-	return j; //xiao
+	// set pointer
+	user[user_sen].u_ofile[j] = i;  
+
+	// return file descriptor, which is the index of struct user.u_ofile
+	return j; 
 }
 
 

@@ -1,15 +1,21 @@
 #include <stdio.h>
+#include <string.h>
 #include "filesys.h"
 
-int login(unsigned short uid, char *passwd)
+// Ok
+// input: uid, password
+// output: 1-success, 0-failed
+int login(uid_t uid, char *passwd)
 {
 	int i,j;
 
 	for (i=0; i<PWDNUM; i++)
 	{
+		// i is the index of matching struct pwd
 		if ((uid == pwd[i].p_uid) && (!strcmp(passwd, pwd[i].password)))
 		{
-			for (j=0; j<USERNUM; j++)   //xiao
+			// linearly search for a idle user
+			for (j=0; j<USERNUM; j++)   
 				if (user[j].u_uid == 0) 
 					break;
  
@@ -20,6 +26,7 @@ int login(unsigned short uid, char *passwd)
 			}
 			else
 			{
+				// j is the index of idle struct user
 				user[j].u_uid = uid;
 				user[j].u_gid = pwd[i].p_gid; 
 				// use this mode for new directory mode
@@ -31,42 +38,58 @@ int login(unsigned short uid, char *passwd)
 
 	if (i == PWDNUM)
 	{
-		printf("\nincorrect password\n");
+		printf("\nUser does not exist or incorrect password!\n");
 		return 0;
 	}
 	else
+	{
+		printf("\nLogin success!\n");
 		return 1;
+	}
+
 }
 
 
-int logout(unsigned short uid)
+// Ok
+// input: uid
+// output: 1-success, 0-failed
+int logout(uid_t uid)
 {
 	int i,j,sys_no;
 	struct inode *inode;
 
+	// search current active users in struct user matching uid
 	for (i=0; i<USERNUM; i++)
 		if (uid == user[i].u_uid)
 			break;
 
 	if (i == USERNUM)
 	{
-		printf("\nno such a file\n");
-		return NULL;
+		printf("\nNo such user!\n");
+		return 0;
 	}
 
+	// i is the index of logout user in struct user
+	// clear user open table
 	for (j=0; j<NOFILE; j++)
 	{
-		if (user[i].u_ofile[j] != SYSOPENFILE+1)
+		// u_ofile[X] = SYSOPENFILE means null pointer
+		if (user[i].u_ofile[j] != SYSOPENFILE)
 		{
 			/* iput the inode free the sys_ofile and clear the user_ofile*/
 			sys_no = user[i].u_ofile[j];
-			inode = sys_ofile[sys_no].f_inode;
-			iput(inode);
-			sys_ofile[sys_no].f_count--;
-			user[i].u_ofile[j] = SYSOPENFILE+1;
+			// if f_count == 0, free memory inode in sys open table
+			if(--sys_ofile[sys_no].f_count)
+			{
+				// free memory inode
+				inode = sys_ofile[sys_no].f_inode;
+				iput(inode);
+			}
+			user[i].u_ofile[j] = SYSOPENFILE;
 		}
 	}
 
+	printf("\nLogout success!\n");
 	return 1;
 }
 

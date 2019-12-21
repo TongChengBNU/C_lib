@@ -13,11 +13,11 @@ int namei(char *name)
 		// disk inode 0# is empty
 		if ((!strcmp(dir.direct[i].d_name, name)) && (dir.direct[i].d_ino != 0))
 		{
-			return (dir.direct[i].d_ino);  //xiao 
+			return (dir.direct[i].d_ino);  
 		}
 	}
 	// not found
-	return -1;
+	return NOINODE;
 } 
    
 // Ok

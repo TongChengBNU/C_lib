@@ -1,10 +1,22 @@
 #include <stdio.h>
 #include "filesys.h"
 
+// 成组链接法中的缓冲区
 static unsigned int block_buf[BLOCKSIZ];
+/*
+ * 空闲块栈示意图
+ * 0  1  2  3  4  5
+ * X  X  O  O  O  O
+ *      ptr
+ * */
 
+
+
+// Ok
+// 成组链接法
+// functionality: allocate free block
 // return ID number of idle block with update
-unsigned int balloc()
+index_t balloc()
 {
 	unsigned int free_block, free_block_num;
 	int i;
@@ -12,96 +24,68 @@ unsigned int balloc()
 	// s_nfree: number of idle block
 	if (filsys.s_nfree == 0)
 	{
-		printf("\nDisk Full!!!\n");
-		return DISKFULL;
+		printf("\nDisk Full!\n");
+		return NOINDEX;
 	}
 
 
+	
 	// free_block: index of next block
 	free_block = filsys.s_free[filsys.s_pfree]; 
 	if (filsys.s_pfree == NICFREE-1)
 	{ 
-		/*
-		fseek(fd, DATASTART+filsys.s_free[filsys.s_pfree]*BLOCKSIZ, SEEK_SET);
-		fread(block_buf, 1, BLOCKSIZ, fd);
-		*/
+		// 空闲块栈只剩一个位置, 最后一个块的内容是下一组空闲块的编号
+		// 把最后一块的内容读入缓冲区 
 		memcpy(block_buf, disk+DATASTART+filsys.s_free[filsys.s_pfree]*BLOCKSIZ, BLOCKSIZ);
-		free_block_num = block_buf[NICFREE];  /*the local block num in the group*/
-		/*
-		for (i=0; i<free_block_num; i++)
-			filsys.s_free[NICFREE-1-i] = block_buf[i];
-		filsys.s_pfree = NICFREE - free_block_num;
-		*/
+		// 原有栈底的号分配出去, free_block在之前已经更新
+		// free_block = filsys.s_free[filsys.s_pfree];
+		// 将缓冲区内的号入栈
 		for (i=0; i<NICFREE; i++)
 			filsys.s_free[i] = block_buf[i];
+		// 栈指针从头开始
 		filsys.s_pfree = 0;
 	}  
 	else 
 		filsys.s_pfree++;
 
+	// 更新系统超级块
 	filsys.s_nfree --;
-
 	filsys.s_fmod = SUPDATE;
 
-	return free_block;
+	return (int)free_block;
 }
 
-// modified by Tong Cheng
-// block free
+
+
+// Ok
+// functionality: free used block
 void bfree(unsigned int block_num)
 {
 	int i;
-
+	 
 	if (filsys.s_pfree == 0)   /* s_free full*/
 	{
-		block_buf[NICFREE] = NICFREE;
+		// 空闲块栈满, 当前栈内容入缓冲区
 		for(i=0; i<NICFREE; i++)
-			block_buf[i] = filsys.s_free[NICFREE-1-i];
+			block_buf[i] = filsys.s_free[i];
+		// 缓冲区写入当前盘块
+		memcpy(disk+DATASTART+block_num*BLOCKSIZ, block_buf, BLOCKSIZ);
+		// 新建栈
 		filsys.s_pfree = NICFREE-1;
+		// 新盘快号作为尾部元素
+		filsys.s_free[filsys.s_pfree] = block_num;
 	}
 	else
 	{
 		filsys.s_pfree--;
 	}
-
 	
-	//fseek(fd, DATASTART+block_num*BLOCKSIZ, SEEK_SET); //add by xiao
-	//fwrite(block_buf,1,BLOCKSIZ,fd);
-	
+	// 更新超级块	
 	filsys.s_nfree++;
 	filsys.s_fmod = SUPDATE;
+
+	return;
 }
-
-
-
-//bfree(block_num)
-//unsigned int block_num;
-//{
-//	int i;
-//
-//	if (filsys.s_pfree == 0)   /* s_free full*/
-//	{
-//		block_buf[NICFREE]=NICFREE;
-//		for(i=0; i<NICFREE; i++)
-//			block_buf[i] = filsys.s_free[NICFREE-1-i];
-//		filsys.s_pfree = NICFREE-1;
-//	}
-//
-//	
-//	fseek(fd, DATASTART+block_num*BLOCKSIZ, SEEK_SET);//add by xiao
-//	fwrite(block_buf,1,BLOCKSIZ,fd);
-//	
-//	filsys.s_nfree++;
-//	filsys.s_fmod = SUPDATE;
-//}
-
-
-
-
-
-
-
-
 
 
 
