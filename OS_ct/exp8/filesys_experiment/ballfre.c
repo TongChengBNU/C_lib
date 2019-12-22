@@ -78,6 +78,7 @@ void bfree(unsigned int block_num)
 	else
 	{
 		filsys.s_pfree--;
+		filsys.s_free[filsys.s_pfree] = block_num;
 	}
 	
 	// 更新超级块	

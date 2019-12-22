@@ -25,7 +25,8 @@ void _dir()
 			// 2. read disk inode into memory inode
 			temp_inode = iget(dir.direct[i].d_ino);
 			printf("inodex_ino:%d ", temp_inode->i_ino);
-			//printf("inodex_ino:%d ", dir.direct[i].d_ino);
+
+
 			 
 			// 3. access vector
 			// dimode binary representation
@@ -67,6 +68,7 @@ void _dir()
 				int temp = ((temp_inode->di_size % BLOCKSIZ)?1:0);
 				for (k=0; k<(temp_inode->di_size/BLOCKSIZ)+temp; k++)
 					printf("%3d", temp_inode->di_addr[k]);
+
 				printf("\n");
 			}
 			else

@@ -139,7 +139,6 @@ void interactive_mode()
 	char *filename = dirname;
 	fd_t fd=-1;
 	status_t status;
-	char buffer[1024];
 	unsigned int size;
 	
 
@@ -169,10 +168,9 @@ void interactive_mode()
 
 		printf("Please select an option below:\n");
 		printf("Current file descriptor: %d\n", fd);
-		printf("1. dir; 2. change dir; 3. makefile; 4. makedir; 5. Delete file 6. logout and halt\n");
-		printf("7. Open; 8. Close; 9. Read; 10. Write;\n");
-		printf("11. Show sys open table; 12. Show user open table;\n");
-		num_option = 12;
+		printf("1. dir; 2. change dir; 3. makedir; 4. make(open) file; 5. Close; 6. Delete file 7. logout and halt\n");
+		printf("11. Show sys open table; 12. Show user open table; 13. Show bfree stack;\n");
+		num_option = 13;
 		scanf("%hd", &option);
 		while(option<1 || option > num_option){
 			printf("Option error! Please input again;\n");
@@ -192,70 +190,62 @@ void interactive_mode()
 				putchar('\n');
 				break;
 			case 3:
-				printf("New file name: ");
-				scanf("%s", filename);
-				fd = create(uid, filename, 01777);
-				putchar('\n');
-				break;
-			case 4:
 				printf("New directory name: ");
 				scanf("%s", dirname);
 				mkdir(filename);
 				putchar('\n');
 				break;
+			case 4:
+				printf("File name: ");
+				scanf("%s", filename);
+				int mark;
+				mark = open(uid, filename, 01777); 
+				if(mark == NOINDEX)
+				{
+					printf("Create a new file %s\n", filename);
+					fd = create(uid, filename, 01777);
+				}
+				else
+				{
+					printf("Open an existing file: %s\n", filename);	
+					fd = mark;
+				}
+				file_rw_UI(fd, uid);
+				putchar('\n');
+				break;
 			case 5:
+				printf("Please specify file descriptor: ");
+				scanf("%d", &fd);
+				status = close(uid, fd);
+				if(status)
+				{
+					printf("Close success\n");
+				}
+				else
+					printf("Close error\n");
+				putchar('\n');
+				break;
+			case 6:
 				printf("Delete file name: ");
 				scanf("%s", filename);
 				delete(filename);
 				putchar('\n');
 				break;
-			case 6:
+			case 7:
 				logout(uid);
 				halt();
 				exit(0);
-				break;
-			case 7:
-				printf("Open filename: ");
-				scanf("%s", filename);
-				fd = open(uid, filename, FAPPEND);
-				printf("Open success\n");
-				putchar('\n');
-				break;
-			case 8:
-				printf("Close filename: ");
-				scanf("%s", filename);
-				status = close(uid, fd);
-				if(status)
-					printf("Close success\n");
-				else
-					printf("Close error\n");
-				putchar('\n');
-				break;
-			case 9:
-				printf("Read size: ");
-				scanf("%d", &size);
-				unsigned short mark = read(fd, buffer, size);
-				printf("Read %d bytes;\n", mark);
-				if(mark)
-					printf("Content: %s\n", buffer);
-				putchar('\n');
-				break;
-			case 10:
-				printf("Write size: ");
-				scanf("%d", &size);
-				printf("Write content: ");
-				memset(buffer, 0x00, 1024);
-				scanf("%s", buffer);
-				mark = write(fd, buffer, size);
-				printf("Write %d bytes;\n", mark);
-				putchar('\n');
 				break;
 			case 11:
 				show_sys_open_table();
 				putchar('\n');
 				break;
 			case 12:
-				show_user_open_table();
+				show_user_open_table(uid);
+				putchar('\n');
+				break;
+			case 13:
+				show_bfree_stack();
 				putchar('\n');
 				break;
 			default:
@@ -286,6 +276,7 @@ void show_sys_open_table()
 
 void show_user_open_table(uid_t uid)
 {
+	printf("uid %d\n", uid);
 	int j, user_sen;
 	for(j=0; j<USERNUM; j++)
 	{
@@ -298,9 +289,10 @@ void show_user_open_table(uid_t uid)
 		return;
 	}
 	user_sen = j;
-	printf("fd ptr\n");
+	printf("fd          ptr\n");
 	for(int i=0; i<NOFILE; i++)
 	{
+	
 		if(user[user_sen].u_ofile[i] != SYSOPENFILE)
 		{
 			printf("%5d%5d\n", i, user[user_sen].u_ofile[i]);
@@ -308,3 +300,84 @@ void show_user_open_table(uid_t uid)
 	}
 	return;
 }
+
+void show_bfree_stack()
+{
+	printf("Free block stack: ");      
+	for(int j=filsys.s_pfree; j<NICFREE; j++)
+	{
+		printf("%d ", filsys.s_free[j]);
+	}
+	putchar('\n');
+	return;
+}
+
+void file_rw_UI(fd_t fd, uid_t uid)
+{
+	unsigned short option;
+	unsigned short size;
+	char buffer[1024];
+	status_t status;
+	printf("Current file descriptor: %d\n", fd);
+	while(1)
+	{
+		printf("Please select a option below: \n");
+		printf("1, Read; 2. Write; 3. Close; 4. Force Quit;\n");
+		unsigned short upper = 4;
+		scanf("%hd", &option);
+		while(option<1 || option>upper)
+		{
+			printf("Input error! Please input again: ");	
+			scanf("%hd", &option);
+		}
+		switch(option){
+			case 1:
+				printf("Read size: ");
+				scanf("%hd", &size);
+				printf("Read offset: ");
+				unsigned int read_off;
+				scanf("%d", &read_off);
+				memset(buffer, 0x00, 1024);
+				unsigned short mark = read(fd, buffer, size, read_off);
+				printf("Read %d bytes;\n", mark);
+				if(mark)
+					printf("Content: %s\n", buffer);
+				putchar('\n');
+				break;
+			case 2:
+				printf("Write size: ");
+				scanf("%hd", &size);
+				while(size > NADDR*BLOCKSIZ)
+				{
+					printf("Max file size: %d; Please input again\n", NADDR*BLOCKSIZ);
+					scanf("%hd", &size);
+				}
+				printf("Write content: ");
+				memset(buffer, 0x00, 1024);
+				scanf("%s", buffer);
+				mark = write(fd, buffer, size);
+				printf("Write %d bytes;\n", mark);
+				putchar('\n');
+				break;
+			case 3:
+				status = close(uid, fd);
+				if(status)
+				{
+					printf("Close success\n");
+					return;
+				}
+				else
+					printf("Close error\n");
+				putchar('\n');
+				break;
+			case 4:
+				return;
+				break;
+			default:
+				exit(0);
+				break;
+		}
+	}
+	return;
+}
+

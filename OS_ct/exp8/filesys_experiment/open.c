@@ -42,8 +42,18 @@ index_t open(uid_t uid, char *filename, unsigned short openmode)
 
 	// alloc the sys_ofile item
 	for (i=0; i<SYSOPENFILE; i++) 
-		if (sys_ofile[i].f_count == 0)
+	{
+		if(sys_ofile[i].f_inode->i_ino = inode->i_ino)
+		{
 			break;
+		}
+		
+		if (sys_ofile[i].f_count == 0)
+		{
+			break;
+		}
+	}
+	// i可以是已有的表项索引，也可以是空表项索引
 
 	if (i == SYSOPENFILE)
 	{
@@ -67,11 +77,13 @@ index_t open(uid_t uid, char *filename, unsigned short openmode)
 
 	// 系统打开表和用户打开表均有空闲条目，进行更新
 
+	// 如果inode原先不在系统打开表中	
 	// i is the index of idle object in system open table
 	sys_ofile[i].f_inode = inode;
 	sys_ofile[i].f_mode = openmode;
 	// 进程访问计数加１
 	sys_ofile[i].f_count += 1;
+
 
 	// 如果是追加内容，那么文件偏移等于当前文件大小
 	if (openmode & FAPPEND)

@@ -33,6 +33,7 @@ void delete(char *filename)
 			if(inode->di_addr[i] != NOINDEX)
 			{
 				printf("Free block number: %d\n", inode->di_addr[i]);
+
 				bfree(inode->di_addr[i]);
 				inode->di_addr[i] = NOINDEX;
 			}
@@ -40,6 +41,17 @@ void delete(char *filename)
 				// 一旦出现一个数据块没用，后面的都没用
 				break;
 		}
+		// update sys_ofile
+		for(int i=0; i<SYSOPENFILE; i++)
+		{
+			if(sys_ofile[i].f_count != 0)	
+			{
+				if(sys_ofile[i].f_inode->i_ino == inode->i_ino)
+					sys_ofile[i].f_count = 0;
+					break;
+			}
+		}
+
 		// release memory inode
 		iput(inode);
 		ifree(dinodeid);
@@ -55,6 +67,8 @@ void delete(char *filename)
 			break;
 		}
 	}
+
+
 	return;
 }
 

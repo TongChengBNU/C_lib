@@ -161,12 +161,47 @@ void format()
 	// set ptr of idle block
 	filsys.s_pfree = 0;	
 	// 成组链接法
-	// to be continued??????????????? 
-	// set stack of idle block
+	// init stack of idle block
 	for(i=0; i<NICFREE; i++)
 	{
 		filsys.s_free[i] = 3+i;
 	}
+	// NICFREE个盘块为1组，将下一组的盘块号存在最后1块里
+	unsigned short block_num_start = 3;
+	unsigned short block_num = filsys.s_fsize - block_num_start;
+	unsigned short group_num = block_num/NICFREE;
+	// in ballfre.c static var
+	unsigned int *block_buf_ptr = block_buf;
+	unsigned short last_group_block_num = block_num % NICFREE;
+	unsigned int block_num_write;
+	if(last_group_block_num > 0)
+	{
+		// 写最后一组的号
+		memset(block_buf_ptr, 0x00, BLOCKSIZ);
+		for(int i=0; i<last_group_block_num; i++)
+		{
+			*block_buf_ptr = i+block_num_start+group_num*NICFREE;
+			block_buf_ptr++;
+		}
+		block_num_write = block_num_start+group_num*NICFREE - 1;
+		block_buf_ptr = block_buf;	
+		memcpy(disk+DATASTART+block_num_write*BLOCKSIZ, block_buf_ptr, BLOCKSIZ);
+	}
+	// 写前面整组的号
+	// 注意第1组的号不能写到2号块上去
+	for(int j=group_num; j>1; j--)
+	{
+		memset(block_buf_ptr, 0x00, BLOCKSIZ);
+		for(int i=0; i<NICFREE; i++)
+		{
+			*block_buf_ptr = i+block_num_start+(j-1)*NICFREE;
+			block_buf_ptr++;
+		}
+		block_num_write = block_num_start+(j-1)*NICFREE - 1;
+		block_buf_ptr = block_buf;	
+		memcpy(disk+DATASTART+block_num_write*BLOCKSIZ, block_buf_ptr, BLOCKSIZ);
+	}
+
 
 
 	// set number of idle inode, used 4 inodes above 

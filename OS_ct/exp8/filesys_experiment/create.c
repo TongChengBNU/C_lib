@@ -51,21 +51,24 @@ index_t create(uid_t uid, char *filename, unsigned short mode)
 			if (sys_ofile[i].f_inode == inode)
 				sys_ofile[i].f_off = 0;
 
-		for (i=0; i<NOFILE; i++)
+		for (j=0; j<NOFILE; j++)
 		{
 			// u_ofile[X] was inited as SYSOPENFILE
-			if (user[user_sen].u_ofile[i] == SYSOPENFILE)
+			if (user[user_sen].u_ofile[j] == SYSOPENFILE)
 			{
 				user[user_sen].u_uid = inode->di_uid;
 				user[user_sen].u_gid = inode->di_gid;
 
-				for (j=0; j<SYSOPENFILE; j++)
-					if (sys_ofile[j].f_count == 0)   //xiao
+				for (i=0; i<SYSOPENFILE; i++)
+				{
+					if (sys_ofile[i].f_count == 0)
 					{
-						user[user_sen].u_ofile[i] = j;
-						sys_ofile[j].f_mode = mode;
+						user[user_sen].u_ofile[j] = i;
+						sys_ofile[i].f_mode = mode;
 					}
+				}
 
+				// return file descriptor, index in user
 				return j;
 			}
 		}
@@ -102,18 +105,30 @@ index_t create(uid_t uid, char *filename, unsigned short mode)
 		for (i=0; i<SYSOPENFILE; i++)
 			if (sys_ofile[i].f_count == 0)
 				break; 
+		if(i == SYSOPENFILE)
+		{
+			printf("System open table full!\n");
+			return NOINDEX;
+		}
 
 		// user open table
 		// u_ofile等于SYSOPENFILE, 说明该表项为空
-		for (j=0; j<NOFILE; j++)   //xiao
+		for (j=0; j<NOFILE; j++)  
 			// u_ofile[X] was inited as SYSOPENFILE
 			if (user[user_sen].u_ofile[j] == SYSOPENFILE)
 				break;
+		if(j == NOFILE)
+		{
+			printf("User open table full!\n");
+			return NOINDEX;
+		}
 
 		// j is index of idle u_ofile
 		// i is index of idle sys_ofile
 
 		user[user_sen].u_ofile[j] = i;
+
+
 		sys_ofile[i].f_mode = mode;
 		// 访问计数为 1
 		sys_ofile[i].f_count = 1;  

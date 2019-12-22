@@ -4,14 +4,18 @@
 
 // Ok
 // functionality: read file content into buf
-// input: fd-file descriptor, buf-buffer, size
+// input: fd-file descriptor, buf-buffer, size, read offset
 // output; read size or ERROR
-unsigned int read(int fd, char *buf, unsigned int size)
+unsigned int read(int fd, char *buf, unsigned int size, unsigned int off)
 {
 	int block_num, block_off, i, j;
 
 	// user_id is a global var, meaning current user index in user
 	struct inode *inode = sys_ofile[user[user_id].u_ofile[fd]].f_inode;
+
+
+
+
 	// check f_mode
 	if (!(sys_ofile[user[user_id].u_ofile[fd]].f_mode & FREAD))
 	{
@@ -21,12 +25,32 @@ unsigned int read(int fd, char *buf, unsigned int size)
 
 	// memory buffer pointer
 	char *temp_buf = buf;
-	// offset
-	unsigned long off = sys_ofile[user[user_id].u_ofile[fd]].f_off;
-	// 如果超出文件范围，则从当前位置读到末尾即可
-	if ((off+size) > inode->di_size)
-		size = inode->di_size - off;
 
+	
+	// offset 
+	// 系统打开表的offset表示写指针
+	// unsigned int off = sys_ofile[user[user_id].u_ofile[fd]].f_off;
+	// 如果超出文件范围，则从当前位置读到末尾即可
+	unsigned int expect_length = off + size;
+	unsigned int inode_size = (unsigned int)(inode->di_size);
+	
+	if( expect_length > inode_size)
+	{
+		size = inode_size - off;
+	}
+
+	
+	printf("size: %d\n", size);
+	printf("size to block: %d\n", size_to_block_num(size));
+
+	for(int i=0; i<size_to_block_num(size); i++)
+	{
+		memcpy(temp_buf, disk+DATASTART+inode->di_addr[i]*BLOCKSIZ, BLOCKSIZ);
+		printf("%s\n", temp_buf);
+		temp_buf += BLOCKSIZ;
+	}
+	
+	/*
 	// 1. 前一部分数据
 	unsigned short start_block = off / BLOCKSIZ;
 	int start_off = off % BLOCKSIZ;
@@ -43,6 +67,7 @@ unsigned int read(int fd, char *buf, unsigned int size)
 	}
 	// 3. 最后一部分数据
 	memcpy(temp_buf, disk+DATASTART+inode->di_addr[block_num]*BLOCKSIZ, block_off);
+	*/
 
 	return size;
 }
@@ -82,12 +107,7 @@ unsigned int write(int fd, char *buf, unsigned int size)
 	unsigned short start_block = off / BLOCKSIZ;
 	int start_off = off % BLOCKSIZ;
 
-	// 1
-	if(remain_size <= (BLOCKSIZ - (off%BLOCKSIZ)))
-	{
-		memcpy(disk+DATASTART+inode->di_addr[start_block]*BLOCKSIZ+start_off, temp_buf, remain_size); 
-		return size;
-	}
+	// 先补充，因为如果文件没有块，则无法写入
 
 	// 2
 	int temp;
@@ -105,7 +125,15 @@ unsigned int write(int fd, char *buf, unsigned int size)
 		}
 		// 补充完毕	
 	}
+	
+	// 1
+	if(remain_size <= (BLOCKSIZ - (off%BLOCKSIZ)))
+	{
+		memcpy(disk+DATASTART+inode->di_addr[start_block]*BLOCKSIZ+start_off, temp_buf, remain_size); 
+		return size;
+	}
 
+	
 	// 3
 	unsigned short current_block = start_block;
 	unsigned short i, j;
@@ -127,6 +155,13 @@ unsigned int write(int fd, char *buf, unsigned int size)
 
 	// 3.3. tail
 	memcpy(disk+DATASTART+inode->di_addr[current_block]*BLOCKSIZ, temp_buf, remain_size);
+
+	for(int i=0; i<NADDR; i++)
+	{
+		if(inode->di_addr[i] != NOINDEX)
+			printf("Write into block #%d\n", inode->di_addr[i]);
+	}
+
 
 	// 4. update inode di_size
 	inode->di_size += size;

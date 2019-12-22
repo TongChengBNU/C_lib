@@ -92,7 +92,7 @@
 // number of file block
 #define FILEBLK   512
 // size of free block stack
-#define NICFREE  50 
+#define NICFREE  10 
 // size of free inode stack
 #define NICINOD  50
 // disk inode start
