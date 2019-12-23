@@ -43,10 +43,9 @@ int login(uid_t uid, char *passwd)
 	}
 	else
 	{
-		printf("\nLogin success!\n");
+		//printf("\nLogin success!\n");
 		return 1;
 	}
-
 }
 
 

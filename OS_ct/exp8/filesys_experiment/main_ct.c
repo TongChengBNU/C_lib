@@ -149,7 +149,7 @@ void interactive_mode()
 	printf("password: ");	
 	// could add hidden feature ?????????
 	scanf("%s", passwd);
-	printf("%d %s\n", uid, passwd);
+	//printf("%d %s\n", uid, passwd);
 
 	if((login(uid, passwd)) == 1)
 	{
@@ -165,9 +165,8 @@ void interactive_mode()
 	// operation
 	while(1)
 	{
-
 		printf("Please select an option below:\n");
-		printf("Current file descriptor: %d\n", fd);
+		//printf("Current file descriptor: %d\n", fd);
 		printf("1. dir; 2. change dir; 3. makedir; 4. make(open) file; 5. Close; 6. Delete file 7. logout and halt\n");
 		printf("11. Show sys open table; 12. Show user open table; 13. Show bfree stack;\n");
 		num_option = 13;
