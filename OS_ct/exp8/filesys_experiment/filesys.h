@@ -157,7 +157,7 @@ struct inode{
 	unsigned short  di_gid;   // disk index node group id
 	unsigned short  di_size;  // size of file 文件大小
 	// NADDR = 10
-	unsigned int   di_addr[NADDR];   // number of physical number /*物理块号*/
+	index_t di_addr[NADDR];   // number of physical number /*物理块号*/
 };
 
 // disk index node

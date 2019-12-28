@@ -1,8 +1,6 @@
 #include <stdio.h>
 #include "filesys.h"
 
-// 90%
-// 实现成组链接法
 //-----------------------------------------
 // Functionality:
 // init password array buffer;

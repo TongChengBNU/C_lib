@@ -117,11 +117,11 @@ void mkdir(char *dirname)
 	dir.direct[dirpos].d_ino = inode->i_ino;
 	dir.size++; 
  
-	/*fill the new dir buf*/
+	// fill the new dir buf
 	// set a buffer size of BLOCKSIZ
 	struct direct buf[BLOCKSIZ/sizeof(struct direct)];
 	memset(buf, 0x00, BLOCKSIZ);  //added by xiao
-	strcpy(buf[0].d_name, "..");
+	strcpy(buf[0]. d_name, "..");
 	buf[0].d_ino = cur_path_inode->i_ino;
 	strcpy(buf[1].d_name, ".");
 	// global cur_path_inode
@@ -195,24 +195,36 @@ void chdir(char *dirname)
 	// 当前内存节点释放
 	//iput(cur_path_inode);
 
-	int temp, j, i;
+	int j, i;
 	unsigned short block_num_need;
+
+	// 当前目录写回磁盘
+	j = 0;
+	inode = cur_path_inode;
+	printf("write inode id: %d\n", inode->i_ino);
+	block_num_need = size_to_block_num(dir.size * sizeof(struct direct));	
+	for (i=0; i<block_num_need; i++)
+	{
+		memcpy(disk+DATASTART+inode->di_addr[i]*BLOCKSIZ, &dir.direct[j], BLOCKSIZ);
+		j += BLOCKSIZ/(sizeof(struct direct));
+	}
+
 
 	// 新目录读入dir
 	// read disk inode into memory inode
-
 	inode = iget(dirid); 
+	printf("read inode id: %d\n", inode->i_ino);
 	cur_path_inode = inode;
 
-	printf("\ndirid: %d   size: %d\n", dirid, inode->di_size);
-	printf("cur: %d\n", cur_path_inode->i_ino);
+	//printf("\ndirid: %d   size: %d\n", dirid, inode->di_size);
+	//printf("cur: %d\n", cur_path_inode->i_ino);
 
 	/*read the change dir from disk*/
 	// 确定目录数据是否为整块
 	// compute upper bound of loop
-	temp = (inode->di_size % BLOCKSIZ)?1:0;
+	// 读数据可以整块读入
 	j=0;
-	block_num_need = (inode->di_size/BLOCKSIZ) + temp;
+	block_num_need = size_to_block_num(inode->di_size);
 	for (i=0; i<block_num_need; i++)
 	{
 		memcpy(&dir.direct[j], disk+DATASTART+inode->di_addr[i]*BLOCKSIZ, BLOCKSIZ);
@@ -220,14 +232,14 @@ void chdir(char *dirname)
 	}
 		
 
-	printf("\n Read success;\n");
-	dir.size = (cur_path_inode->di_size)/(sizeof(struct direct));
-	printf("dir size: %d\n", dir.size);
+	//printf("\n Read success;\n");
+	//dir.size = (cur_path_inode->di_size)/(sizeof(struct direct));
+	//printf("dir size: %d\n", dir.size);
 
-	for(i=0;i<4;i++)
-	{
-		printf("%s\n", dir.direct[i].d_name);
-	}
+	//for(i=0;i<4;i++)
+	//{
+    //	printf("%s\n", dir.direct[i].d_name);
+	//}
 	
 	
 	return;  

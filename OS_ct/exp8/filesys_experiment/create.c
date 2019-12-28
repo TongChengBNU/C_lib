@@ -6,6 +6,8 @@
 // output: file descriptor, also index of user open table -- u_ofile
 index_t create(uid_t uid, char *filename, unsigned short mode)
 {
+	//printf("Cur path inode: %d\n", cur_path_inode->i_ino);
+
 	struct inode *inode;
 	// j: index of memory var user, which matching uid
 	int i,j;
@@ -42,7 +44,7 @@ index_t create(uid_t uid, char *filename, unsigned short mode)
 		}
 
 		/* free all the block of the old file */
-		for (i=0; i<inode->di_size/BLOCKSIZ+1; i++)
+		for (i=0; i<size_to_block_num(inode->di_size); i++)
 			bfree(inode->di_addr[i]);
 
 
@@ -80,6 +82,7 @@ index_t create(uid_t uid, char *filename, unsigned short mode)
 	    /*not existed before*/
 		inode = ialloc();
 
+		// init
 		for(int i=0; i<NADDR; i++)
 		{
 			inode->di_addr[i] = NOINDEX;

@@ -43,7 +43,7 @@ unsigned int dinodeid;
 
 	/* not existed */   
 	/* 1. calculate the addr of disk inode */
-	addr = DINODESTART + dinodeid * DINODESIZ;
+	addr = DINODESTART + dinodeid * sizeof(struct dinode);
 
 	/* 2. malloc the new memory inode*/
 	newinode = (struct inode *)malloc(sizeof(struct inode));
@@ -52,7 +52,7 @@ unsigned int dinodeid;
 	// disk is a global variable declared in main.c
 	// memory inode contain a sub dinode from di_type
 	// could be improved *************************
-	memcpy(&(newinode->di_type), disk+addr, DINODESIZ);
+	memcpy(&(newinode->di_type), disk+addr, sizeof(struct dinode));
 
 	/* 4. put it into hinode[inodeid] queue*/
 	// add the new memory inode at head

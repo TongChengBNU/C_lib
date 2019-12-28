@@ -140,6 +140,7 @@ void interactive_mode()
 	fd_t fd=-1;
 	status_t status;
 	unsigned int size;
+	struct inode* inode;
 	
 
 	// login
@@ -169,7 +170,7 @@ void interactive_mode()
 		//printf("Current file descriptor: %d\n", fd);
 		printf("1. dir; 2. change dir; 3. makedir; 4. make(open) file; 5. Close; 6. Delete file 7. logout and halt\n");
 		printf("11. Show sys open table; 12. Show user open table; 13. Show bfree stack;\n");
-		num_option = 13;
+		num_option = 15;
 		scanf("%hd", &option);
 		while(option<1 || option > num_option){
 			printf("Option error! Please input again;\n");
@@ -198,6 +199,22 @@ void interactive_mode()
 				printf("File name: ");
 				scanf("%s", filename);
 				int mark;
+				mark = namei(filename);
+				// NOINODE = 0
+				if(mark > 0)
+				{
+					inode = iget(mark);
+					if(inode->di_mode & 01000)
+					{
+						// dir 10th bit is 1;
+						printf("Already a directory name;\n");
+						putchar('\n');
+						break;
+					}
+				}
+
+				printf("Cur path inode:%d\n", cur_path_inode->i_ino);
+
 				mark = open(uid, filename, 01777); 
 				if(mark == NOINDEX)
 				{
@@ -246,6 +263,12 @@ void interactive_mode()
 			case 13:
 				show_bfree_stack();
 				putchar('\n');
+				break;
+			case 14:
+				printf("cur inode id: %d\n", cur_path_inode->i_ino);
+				putchar('\n');
+			case 15:
+				iget(1);
 				break;
 			default:
 				break;

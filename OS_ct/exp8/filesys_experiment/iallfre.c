@@ -3,7 +3,7 @@
 
 //static struct dinode block_buf[BLOCKSIZ/DINODESIZ];
 
-// Ok?????????
+// Ok
 // functionality: allocate disk inode
 // output: 
 struct inode * ialloc()
@@ -66,14 +66,22 @@ struct inode * ialloc()
 	}
 
 	unsigned int inode_ino = filsys.s_inode[filsys.s_pinode];
-	temp_inode = iget(inode_ino);
+	struct dinode *dinode_ptr = (struct dinode *)malloc(sizeof(struct dinode));	
+	dinode_ptr->di_uid = user_id;
+	dinode_ptr->di_size = 0;
 	// temp_inode sub disk inode is null
 	// write back to achieve consistency
 	memcpy(disk+DINODESTART+inode_ino*DINODESIZ,
-	             &temp_inode->di_type, sizeof(struct dinode));
+	             dinode_ptr, sizeof(struct dinode));
+	free(dinode_ptr);
+	printf("Cur: %d\n", cur_path_inode->i_ino);
+	temp_inode = iget(inode_ino);
+	printf("Cur: %d\n", cur_path_inode->i_ino);
+
 	filsys.s_pinode ++;
 	filsys.s_ninode --;   
 	filsys.s_fmod = SUPDATE; 
+
 	return temp_inode;
 } 
 
@@ -88,14 +96,16 @@ void ifree(unsigned int dinodeid)
 	{
 		// idle stack not full
 		filsys.s_pinode--;
-		filsys.s_inode[filsys.s_pinode] = dinodeid;
 	}
 	else   
 	{
-		printf("idle stack full");
+		//printf("idle stack full");
 		// idle stack full
-		
+		filsys.s_rinode += NICINOD;
+		filsys.s_pinode = NICINOD-1;
 	}
+	filsys.s_inode[filsys.s_pinode] = dinodeid;
+	return;
 }
 
 
